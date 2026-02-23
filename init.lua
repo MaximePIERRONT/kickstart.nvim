@@ -666,6 +666,7 @@ require('lazy').setup({
                     location = vue_language_server_path,
                     languages = { 'vue' },
                     configNamespace = 'typescript',
+                    enableForWorkspaceTypeScriptVersions = true,
                   },
                 },
               },
@@ -675,7 +676,14 @@ require('lazy').setup({
           filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
         },
 
-        vue_ls = {},
+        vue_ls = {
+          init_options = {
+            typescript = {
+              -- Point to the Mason-installed TypeScript library for Vue LS hybrid mode
+              tsdk = vim.fn.stdpath 'data' .. '/mason/packages/vue-language-server/node_modules/typescript/lib',
+            },
+          },
+        },
 
         eslint = {
           settings = {
