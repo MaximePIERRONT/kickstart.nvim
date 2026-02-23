@@ -591,7 +591,9 @@ require('lazy').setup({
 
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
-          map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
+          map('gra', function() require('actions-preview').code_actions() end, '[G]oto Code [A]ction', { 'n', 'x' })
+          map('<A-CR>', function() require('actions-preview').code_actions() end, 'Code Action (Alt+Enter)', { 'n', 'x' })
+          map('<leader>.', function() require('actions-preview').code_actions() end, 'Code Action (Fallback)', { 'n', 'x' })
 
           -- WARN: This is not Goto Definition, this is Goto Declaration.
           --  For example, in C this would take you to the header.
