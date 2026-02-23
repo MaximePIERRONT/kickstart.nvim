@@ -659,7 +659,6 @@ require('lazy').setup({
         vtsls = {
           settings = {
             vtsls = {
-              -- Enable auto-use of workspace TypeScript version
               autoUseWorkspaceTsdk = true,
               tsserver = {
                 globalPlugins = {
@@ -674,8 +673,7 @@ require('lazy').setup({
               },
             },
           },
-          -- Include vue so vtsls attaches to .vue files for TypeScript support
-          filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
+          filetypes = { 'vue' },
         },
 
         vue_ls = {
@@ -705,7 +703,7 @@ require('lazy').setup({
       local ensure_installed = {
         'lua-language-server', -- Lua Language server
         'stylua', -- Used to format Lua code
-        'vtsls', -- TypeScript/JavaScript LSP
+        'vtsls', -- TypeScript LSP backend for Vue hybrid mode
         'vue-language-server', -- Vue.js LSP (Volar)
         'eslint-lsp', -- ESLint LSP
         'prettierd', -- Prettier daemon (formatter)
