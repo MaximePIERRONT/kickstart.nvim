@@ -10,6 +10,47 @@ local jdtls_path = mason_path .. '/jdtls'
 local java_debug_path = mason_path .. '/java-debug-adapter'
 local java_test_path = mason_path .. '/java-test'
 
+local function first_non_empty_glob(pattern)
+  local matches = vim.split(vim.fn.glob(pattern, true), '\n')
+  for _, match in ipairs(matches) do
+    if match ~= '' then
+      return match
+    end
+  end
+  return nil
+end
+
+local function detect_build_tool(project_root)
+  if project_root and vim.fn.filereadable(project_root .. '/mvnw') == 1 then
+    return './mvnw'
+  end
+  if project_root and vim.fn.filereadable(project_root .. '/gradlew') == 1 then
+    return './gradlew'
+  end
+  if vim.fn.executable 'mvn' == 1 then
+    return 'mvn'
+  end
+  local sdkman_mvn = vim.fn.expand '~/.sdkman/candidates/maven/current/bin/mvn'
+  if vim.fn.executable(sdkman_mvn) == 1 then
+    return sdkman_mvn
+  end
+  if vim.fn.executable 'gradle' == 1 then
+    return 'gradle'
+  end
+  return nil
+end
+
+local function new_neotest_java_adapter()
+  return require('neotest-java') {
+    test_classname_patterns = {
+      '^.*Test$',
+      '^.*Tests$',
+      '^.*IT$',
+      '^.*Spec$',
+    },
+  }
+end
+
 -- Detect the OS for the jdtls config directory
 local os_config = 'config_linux'
 if vim.fn.has 'mac' == 1 then
@@ -27,6 +68,87 @@ local workspace_dir = vim.fn.stdpath 'data' .. '/jdtls-workspace/' .. project_na
 
 -- Find the root directory of the project
 local root_dir = require('jdtls.setup').find_root { 'pom.xml', 'build.gradle', 'gradlew', '.git', 'mvnw' }
+
+local function java_test_check(opts)
+  opts = opts or {}
+  local notify = opts.notify ~= false
+
+  local errors = {}
+  local warnings = {}
+
+  if launcher_jar == '' then
+    table.insert(errors, 'jdtls launcher JAR introuvable (Mason: jdtls)')
+  end
+
+  if root_dir == nil then
+    table.insert(errors, 'racine de projet Java non detectee (pom.xml/build.gradle/gradlew/.git/mvnw)')
+  end
+
+  local has_java_test = first_non_empty_glob(java_test_path .. '/extension/server/*.jar') ~= nil
+  if not has_java_test then
+    table.insert(errors, 'bundle java-test introuvable (Mason: java-test)')
+  end
+
+  local has_java_debug = first_non_empty_glob(java_debug_path .. '/extension/server/com.microsoft.java.debug.plugin-*.jar') ~= nil
+  if not has_java_debug then
+    table.insert(warnings, 'bundle java-debug-adapter introuvable (debug de tests indisponible)')
+  end
+
+  if vim.fn.executable 'java' ~= 1 then
+    table.insert(errors, 'commande java introuvable dans le PATH')
+  end
+
+  local build_tool = detect_build_tool(root_dir)
+  if not build_tool then
+    table.insert(errors, 'aucun build tool detecte (mvn/mvnw/gradle/gradlew)')
+  end
+
+  local has_neotest = pcall(require, 'neotest')
+  if not has_neotest then
+    table.insert(errors, 'plugin neotest non charge')
+  end
+
+  local is_ok = #errors == 0
+  if notify then
+    if is_ok then
+      local message = 'Java tests prets'
+      if #warnings > 0 then
+        message = message .. '\nWarnings:\n- ' .. table.concat(warnings, '\n- ')
+      end
+      vim.notify(message, vim.log.levels.INFO, { title = 'JavaTestCheck' })
+    else
+      local message = 'Java tests non prets:\n- ' .. table.concat(errors, '\n- ')
+      if #warnings > 0 then
+        message = message .. '\nWarnings:\n- ' .. table.concat(warnings, '\n- ')
+      end
+      vim.notify(message, vim.log.levels.ERROR, { title = 'JavaTestCheck' })
+    end
+  end
+
+  return is_ok
+end
+
+local function ensure_neotest_context()
+  if root_dir and vim.fn.getcwd() ~= root_dir then
+    vim.cmd.lcd(root_dir)
+  end
+
+  local adapter_root = vim.g.neotest_java_adapter_root
+  if adapter_root ~= root_dir then
+    require('neotest').setup {
+      adapters = {
+        new_neotest_java_adapter(),
+      },
+    }
+    vim.g.neotest_java_adapter_root = root_dir
+  end
+end
+
+if vim.fn.exists ':JavaTestCheck' == 0 then
+  vim.api.nvim_create_user_command('JavaTestCheck', function() java_test_check { notify = true } end, {
+    desc = 'Verifier les prerequis de tests Java (jdtls/neotest/build tool)',
+  })
+end
 
 -- Collect debug and test bundles
 local bundles = {}
@@ -99,6 +221,29 @@ local config = {
 
     local opts = { buffer = bufnr }
 
+    local function run_java_test(target)
+      if not java_test_check { notify = false } then
+        vim.notify('Prerequis Java incomplets. Lance :JavaTestCheck', vim.log.levels.ERROR, { title = 'Neotest Java' })
+        return
+      end
+
+      ensure_neotest_context()
+
+      local ok, neotest = pcall(require, 'neotest')
+      if not ok then
+        vim.notify('Impossible de charger neotest', vim.log.levels.ERROR, { title = 'Neotest Java' })
+        return
+      end
+
+      local run_ok, err = pcall(neotest.run.run, target)
+      if not run_ok then
+        vim.notify('Echec lancement test: ' .. tostring(err), vim.log.levels.ERROR, { title = 'Neotest Java' })
+        return
+      end
+
+      vim.notify('Execution des tests Java lancee', vim.log.levels.INFO, { title = 'Neotest Java' })
+    end
+
     -- Java-specific keymaps under <leader>j
     vim.keymap.set('n', '<leader>ji', jdtls.organize_imports, vim.tbl_extend('force', opts, { desc = '[J]ava Organize [I]mports' }))
     vim.keymap.set('n', '<leader>jc', jdtls.extract_constant, vim.tbl_extend('force', opts, { desc = '[J]ava Extract [C]onstant' }))
@@ -107,13 +252,14 @@ local config = {
 
     -- Test keymaps using neotest
     local neotest = require 'neotest'
-    vim.keymap.set('n', '<leader>jt', function() neotest.run.run() end, vim.tbl_extend('force', opts, { desc = '[J]ava Run [T]est (cursor)' }))
-    vim.keymap.set('n', '<leader>jf', function() neotest.run.run(vim.fn.expand '%') end, vim.tbl_extend('force', opts, { desc = '[J]ava Run Tests [F]ile' }))
+    vim.keymap.set('n', '<leader>jt', function() run_java_test() end, vim.tbl_extend('force', opts, { desc = '[J]ava Run [T]est (cursor)' }))
+    vim.keymap.set('n', '<leader>jf', function() run_java_test(vim.fn.expand '%:p') end, vim.tbl_extend('force', opts, { desc = '[J]ava Run Tests [F]ile' }))
     vim.keymap.set('n', '<leader>js', function() neotest.summary.toggle() end, vim.tbl_extend('force', opts, { desc = '[J]ava Test [S]ummary' }))
     vim.keymap.set('n', '<leader>jo', function() neotest.output.open { enter = true } end, vim.tbl_extend('force', opts, { desc = '[J]ava Test [O]utput' }))
+    vim.keymap.set('n', '<leader>jC', function() java_test_check { notify = true } end, vim.tbl_extend('force', opts, { desc = '[J]ava Test [C]heck' }))
 
     -- Debug test under cursor
-    vim.keymap.set('n', '<leader>jd', function() neotest.run.run { strategy = 'dap' } end, vim.tbl_extend('force', opts, { desc = '[J]ava [D]ebug Test' }))
+    vim.keymap.set('n', '<leader>jd', function() run_java_test { strategy = 'dap' } end, vim.tbl_extend('force', opts, { desc = '[J]ava [D]ebug Test' }))
   end,
 }
 

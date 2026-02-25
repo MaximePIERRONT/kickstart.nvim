@@ -90,6 +90,14 @@ P.S. You can delete this when you're done too. It's your config now! :)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
+-- Ensure Maven is available even when Neovim is launched from GUI sessions.
+if vim.fn.executable 'mvn' == 0 then
+  local maven_bin = vim.fn.expand '~/.sdkman/candidates/maven/current/bin'
+  if vim.fn.isdirectory(maven_bin) == 1 then
+    vim.env.PATH = maven_bin .. ':' .. vim.env.PATH
+  end
+end
+
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
 
@@ -967,9 +975,18 @@ require('lazy').setup({
       'rcasia/neotest-java', -- JUnit 5 adapter
     },
     config = function()
+      local neotest_java = require('neotest-java') {
+        test_classname_patterns = {
+          '^.*Test$',
+          '^.*Tests$',
+          '^.*IT$',
+          '^.*Spec$',
+        },
+      }
+
       require('neotest').setup {
         adapters = {
-          require 'neotest-java',
+          neotest_java,
         },
       }
 
