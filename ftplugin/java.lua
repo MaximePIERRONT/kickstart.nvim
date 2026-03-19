@@ -3,6 +3,7 @@
 -- It configures jdtls (Eclipse JDT Language Server) for Java development.
 
 local jdtls = require 'jdtls'
+local notify_module = require 'custom.neotest-notifications'
 
 -- Mason install paths
 local mason_path = vim.fn.stdpath 'data' .. '/mason/packages'
@@ -192,16 +193,6 @@ end
 local function ensure_neotest_context()
   if root_dir and vim.fn.getcwd() ~= root_dir then
     vim.cmd.lcd(root_dir)
-  end
-
-  local adapter_root = vim.g.neotest_java_adapter_root
-  if adapter_root ~= root_dir then
-    require('neotest').setup {
-      adapters = {
-        new_neotest_java_adapter(),
-      },
-    }
-    vim.g.neotest_java_adapter_root = root_dir
   end
 end
 
@@ -535,7 +526,11 @@ local config = {
         return
       end
 
-      ensure_neotest_context()
+      local current_file = vim.api.nvim_buf_get_name(0)
+      local module_dir = nearest_pom_dir(current_file)
+      if module_dir and vim.fn.getcwd() ~= module_dir then
+        vim.cmd.lcd(module_dir)
+      end
 
       local ok, neotest = pcall(require, 'neotest')
       if not ok then
@@ -543,13 +538,14 @@ local config = {
         return
       end
 
-      local run_ok, err = pcall(neotest.run.run, target)
+      local run_with_notification = notify_module.make_run_with_notification(neotest)
+      local wrapped_run = run_with_notification(neotest.run.run)
+
+      local run_ok, err = pcall(wrapped_run, target)
       if not run_ok then
         vim.notify('Echec lancement test: ' .. tostring(err), vim.log.levels.ERROR, { title = 'Neotest Java' })
         return
       end
-
-      vim.notify('Execution des tests Java lancee', vim.log.levels.INFO, { title = 'Neotest Java' })
     end
 
     -- Java-specific keymaps under <leader>j
@@ -560,6 +556,8 @@ local config = {
 
     -- Test keymaps using neotest
     local neotest = require 'neotest'
+    local run_with_notification = notify_module.make_run_with_notification(neotest)
+    local wrapped_run = run_with_notification(neotest.run.run)
     vim.keymap.set('n', '<leader>jt', function() run_java_test() end, vim.tbl_extend('force', opts, { desc = '[J]ava Run [T]est (cursor)' }))
     vim.keymap.set('n', '<leader>jf', function() run_java_test(vim.fn.expand '%:p') end, vim.tbl_extend('force', opts, { desc = '[J]ava Run Tests [F]ile' }))
     vim.keymap.set('n', '<leader>js', function() neotest.summary.toggle() end, vim.tbl_extend('force', opts, { desc = '[J]ava Test [S]ummary' }))

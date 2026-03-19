@@ -1,7 +1,7 @@
 -- Neotest notifications plugin: rich test feedback à la IntelliJ
 -- Provides:
 --   1. nvim-notify for beautiful popup notifications
---   2. Neotest event listeners for pass/fail notifications
+--   2. Polling-based test result notifications (pass/fail)
 --   3. Global keymaps for test runner (not Java-specific)
 --   4. Signs and virtual_text in gutter for test status
 return {
@@ -108,75 +108,19 @@ return {
         },
       }
 
-      -- ==========================================
-      -- Event-driven notifications (pass/fail)
-      -- ==========================================
-      local function count_results(results)
-        local passed, failed, skipped, total = 0, 0, 0, 0
-        for _, result in pairs(results) do
-          total = total + 1
-          if result.status == 'passed' then
-            passed = passed + 1
-          elseif result.status == 'failed' then
-            failed = failed + 1
-          elseif result.status == 'skipped' then
-            skipped = skipped + 1
-          end
-        end
-        return { passed = passed, failed = failed, skipped = skipped, total = total }
-      end
+      local notify_module = require('custom.neotest-notifications')
+      local run_with_notification = notify_module.make_run_with_notification(neotest)
 
-      neotest.listeners.results = neotest.listeners.results or {}
-      neotest.listeners.results['neotest_notifications'] = function(adapter_id, results, partial)
-        -- Skip partial results (still running)
-        if partial then
-          return
-        end
+      vim.keymap.set('n', '<leader>tr', function() run_with_notification(neotest.run.run)() end, { desc = '[T]est [R]un (nearest)' })
+      vim.keymap.set('n', '<leader>tf', function() run_with_notification(neotest.run.run)(vim.fn.expand '%:p') end, { desc = '[T]est Run [F]ile' })
+      vim.keymap.set('n', '<leader>tl', function() run_with_notification(neotest.run.run_last)() end, { desc = '[T]est Run [L]ast' })
+      vim.keymap.set('n', '<leader>td', function() run_with_notification(neotest.run.run)({ strategy = 'dap' }) end, { desc = '[T]est [D]ebug (nearest)' })
 
-        local stats = count_results(results)
-        if stats.total == 0 then
-          return
-        end
-
-        local icon, level, title
-        if stats.failed > 0 then
-          icon = ' '
-          level = vim.log.levels.ERROR
-          title = 'Tests Failed'
-        else
-          icon = ' '
-          level = vim.log.levels.INFO
-          title = 'Tests Passed'
-        end
-
-        local parts = {}
-        if stats.passed > 0 then
-          table.insert(parts, stats.passed .. ' passed')
-        end
-        if stats.failed > 0 then
-          table.insert(parts, stats.failed .. ' failed')
-        end
-        if stats.skipped > 0 then
-          table.insert(parts, stats.skipped .. ' skipped')
-        end
-
-        local msg = icon .. table.concat(parts, '  |  ')
-        vim.notify(msg, level, { title = title })
-      end
-
-      -- ==========================================
-      -- Global keymaps (all languages, not just Java)
-      -- ==========================================
-      vim.keymap.set('n', '<leader>tr', function() neotest.run.run() end, { desc = '[T]est [R]un (nearest)' })
-      vim.keymap.set('n', '<leader>tf', function() neotest.run.run(vim.fn.expand '%:p') end, { desc = '[T]est Run [F]ile' })
       vim.keymap.set('n', '<leader>ts', function() neotest.summary.toggle() end, { desc = '[T]est [S]ummary toggle' })
       vim.keymap.set('n', '<leader>to', function() neotest.output.open { enter = true } end, { desc = '[T]est [O]utput' })
       vim.keymap.set('n', '<leader>tp', function() neotest.output_panel.toggle() end, { desc = '[T]est [P]anel toggle' })
-      vim.keymap.set('n', '<leader>tl', function() neotest.run.run_last() end, { desc = '[T]est Run [L]ast' })
       vim.keymap.set('n', '<leader>tx', function() neotest.run.stop() end, { desc = '[T]est Stop (E[x]it)' })
-      vim.keymap.set('n', '<leader>td', function() neotest.run.run { strategy = 'dap' } end, { desc = '[T]est [D]ebug (nearest)' })
 
-      -- Jump between test failures
       vim.keymap.set('n', '[t', function() neotest.jump.prev { status = 'failed' } end, { desc = 'Previous failed test' })
       vim.keymap.set('n', ']t', function() neotest.jump.next { status = 'failed' } end, { desc = 'Next failed test' })
 
