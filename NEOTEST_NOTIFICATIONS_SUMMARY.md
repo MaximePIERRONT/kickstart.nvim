@@ -107,5 +107,12 @@ Shared helper module containing:
 
 3. **Multi-module projects**: The solution uses `nearest_pom_dir()` to find the correct module directory, which works for Maven multi-module projects.
 
+4. **"No tests found"**: Despite using `nearest_pom_dir()`, neotest-java may still not discover tests in multi-module Maven projects. This could be due to:
+   - neotest-java relying on nvim-jdtls for classpath/discovery information
+   - The adapter needing explicit project configuration for multi-module setups
+   - neotest's internal state not being properly refreshed after directory change
+
+5. **neotest.setup() called too early**: The `neotest.setup()` is called when `neotest-notifications.lua` plugin loads (at Neovim startup), before jdtls has attached and before we know the correct project root. This may cause adapter configuration issues.
+
 ## Date
 Created: March 19, 2026

@@ -41,8 +41,10 @@ return {
     config = function()
       local neotest = require 'neotest'
 
+      local has_neotest_java = pcall(require, 'neotest-java')
+
       neotest.setup {
-        adapters = {
+        adapters = has_neotest_java and {
           require('neotest-java') {
             test_classname_patterns = {
               '^.*Test$',
@@ -51,16 +53,14 @@ return {
               '^.*Spec$',
             },
           },
-        },
+        } or {},
 
-        -- Signs in the gutter next to test functions
         status = {
           enabled = true,
           signs = true,
           virtual_text = true,
         },
 
-        -- Icons for the summary panel and signs
         icons = {
           passed = '',
           failed = '',
@@ -70,7 +70,6 @@ return {
           running_animated = { '', '', '', '', '', '', '' },
         },
 
-        -- Summary panel config (like IntelliJ test tool window)
         summary = {
           enabled = true,
           animated = true,
@@ -96,7 +95,6 @@ return {
           },
         },
 
-        -- Output panel config
         output = {
           enabled = true,
           open_on_run = false,

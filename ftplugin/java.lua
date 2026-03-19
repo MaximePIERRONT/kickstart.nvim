@@ -538,6 +538,16 @@ local config = {
         return
       end
 
+      local adapter_root = vim.g.neotest_java_adapter_root
+      if adapter_root ~= module_dir then
+        neotest.setup {
+          adapters = {
+            new_neotest_java_adapter(),
+          },
+        }
+        vim.g.neotest_java_adapter_root = module_dir
+      end
+
       local run_with_notification = notify_module.make_run_with_notification(neotest)
       local wrapped_run = run_with_notification(neotest.run.run)
 
