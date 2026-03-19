@@ -78,7 +78,7 @@ return {
     'lazydocker.nvim',
     virtual = true,
     keys = {
-      { '<leader>td', toggle, desc = '[T]oggle [D]ocker' },
+      { '<leader>tD', toggle, desc = '[T]oggle [D]ocker' },
     },
   },
 }

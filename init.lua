@@ -364,7 +364,7 @@ require('lazy').setup({
       -- Document existing key chains
       spec = {
         { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
-        { '<leader>t', group = '[T]oggle' },
+        { '<leader>t', group = '[T]est / Toggle' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
         { '<leader>g', group = '[G]it' },
         { '<leader>gf', group = '[F]ind' },
@@ -966,55 +966,8 @@ require('lazy').setup({
     ft = 'java',
   },
 
-  { -- Test runner framework
-    'nvim-neotest/neotest',
-    dependencies = {
-      'nvim-neotest/nvim-nio',
-      'nvim-lua/plenary.nvim',
-      'nvim-treesitter/nvim-treesitter',
-      'rcasia/neotest-java', -- JUnit 5 adapter
-    },
-    config = function()
-      local neotest_java = require('neotest-java') {
-        test_classname_patterns = {
-          '^.*Test$',
-          '^.*Tests$',
-          '^.*IT$',
-          '^.*Spec$',
-        },
-      }
-
-      require('neotest').setup {
-        adapters = {
-          neotest_java,
-        },
-      }
-
-      -- Command to download JUnit jar on machines without Neovim 0.12+
-      vim.api.nvim_create_user_command('NeotestJavaDownload', function()
-        local version = '1.10.1'
-        local dir = vim.fn.stdpath 'data' .. '/neotest-java'
-        local jar = dir .. '/junit-platform-console-standalone-' .. version .. '.jar'
-        if vim.fn.filereadable(jar) == 1 then
-          vim.notify('JUnit jar already exists at ' .. jar, vim.log.levels.INFO)
-          return
-        end
-        vim.fn.mkdir(dir, 'p')
-        local url = 'https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/'
-          .. version
-          .. '/junit-platform-console-standalone-'
-          .. version
-          .. '.jar'
-        vim.notify('Downloading JUnit Platform Console Standalone ' .. version .. '...', vim.log.levels.INFO)
-        vim.fn.system { 'curl', '-L', '-o', jar, url }
-        if vim.v.shell_error == 0 then
-          vim.notify('JUnit jar downloaded successfully!', vim.log.levels.INFO)
-        else
-          vim.notify('Failed to download JUnit jar', vim.log.levels.ERROR)
-        end
-      end, { desc = 'Download JUnit Platform Console Standalone jar for neotest-java' })
-    end,
-  },
+  -- NOTE: Neotest is now configured in lua/custom/plugins/neotest-notifications.lua
+  -- with nvim-notify integration, global keymaps, signs, and virtual_text.
 
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
