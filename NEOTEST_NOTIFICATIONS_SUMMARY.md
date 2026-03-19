@@ -114,5 +114,19 @@ Shared helper module containing:
 
 5. **neotest.setup() called too early**: The `neotest.setup()` is called when `neotest-notifications.lua` plugin loads (at Neovim startup), before jdtls has attached and before we know the correct project root. This may cause adapter configuration issues.
 
+## Planned Features
+
+### Enhanced Test Result Notifications
+- **Feature**: Show detailed popup with test summary after each test run
+- **Details to display**:
+  - Number of tests passed, failed, and skipped
+  - For failed/crashed tests: show test name, error message, and stack trace
+  - Link to open output panel for full details
+- **Implementation approach**:
+  - Use `neotest.state().results` to get detailed test results
+  - Extract error messages and stack traces from result data
+  - Format as rich notification using nvim-notify
+  - Include clickable actions to jump to failure location
+
 ## Date
 Created: March 19, 2026
