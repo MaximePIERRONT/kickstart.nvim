@@ -90,6 +90,14 @@ P.S. You can delete this when you're done too. It's your config now! :)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
+-- Ensure Maven is available even when Neovim is launched from GUI sessions.
+if vim.fn.executable 'mvn' == 0 then
+  local maven_bin = vim.fn.expand '~/.sdkman/candidates/maven/current/bin'
+  if vim.fn.isdirectory(maven_bin) == 1 then
+    vim.env.PATH = maven_bin .. ':' .. vim.env.PATH
+  end
+end
+
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
 
@@ -356,7 +364,7 @@ require('lazy').setup({
       -- Document existing key chains
       spec = {
         { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
-        { '<leader>t', group = '[T]oggle' },
+        { '<leader>t', group = '[T]est / Toggle' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
         { '<leader>g', group = '[G]it' },
         { '<leader>gf', group = '[F]ind' },
@@ -591,7 +599,9 @@ require('lazy').setup({
 
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
-          map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
+          map('gra', function() require('actions-preview').code_actions() end, '[G]oto Code [A]ction', { 'n', 'x' })
+          map('<A-CR>', function() require('actions-preview').code_actions() end, 'Code Action (Alt+Enter)', { 'n', 'x' })
+          map('<leader>.', function() require('actions-preview').code_actions() end, 'Code Action (Fallback)', { 'n', 'x' })
 
           -- WARN: This is not Goto Definition, this is Goto Declaration.
           --  For example, in C this would take you to the header.
@@ -657,7 +667,6 @@ require('lazy').setup({
         vtsls = {
           settings = {
             vtsls = {
-              -- Enable auto-use of workspace TypeScript version
               autoUseWorkspaceTsdk = true,
               tsserver = {
                 globalPlugins = {
@@ -672,8 +681,7 @@ require('lazy').setup({
               },
             },
           },
-          -- Include vue so vtsls attaches to .vue files for TypeScript support
-          filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
+          filetypes = { 'vue' },
         },
 
         vue_ls = {
@@ -703,7 +711,7 @@ require('lazy').setup({
       local ensure_installed = {
         'lua-language-server', -- Lua Language server
         'stylua', -- Used to format Lua code
-        'vtsls', -- TypeScript/JavaScript LSP
+        'vtsls', -- TypeScript LSP backend for Vue hybrid mode
         'vue-language-server', -- Vue.js LSP (Volar)
         'eslint-lsp', -- ESLint LSP
         'prettierd', -- Prettier daemon (formatter)
@@ -958,46 +966,8 @@ require('lazy').setup({
     ft = 'java',
   },
 
-  { -- Test runner framework
-    'nvim-neotest/neotest',
-    dependencies = {
-      'nvim-neotest/nvim-nio',
-      'nvim-lua/plenary.nvim',
-      'nvim-treesitter/nvim-treesitter',
-      'rcasia/neotest-java', -- JUnit 5 adapter
-    },
-    config = function()
-      require('neotest').setup {
-        adapters = {
-          require 'neotest-java',
-        },
-      }
-
-      -- Command to download JUnit jar on machines without Neovim 0.12+
-      vim.api.nvim_create_user_command('NeotestJavaDownload', function()
-        local version = '1.10.1'
-        local dir = vim.fn.stdpath 'data' .. '/neotest-java'
-        local jar = dir .. '/junit-platform-console-standalone-' .. version .. '.jar'
-        if vim.fn.filereadable(jar) == 1 then
-          vim.notify('JUnit jar already exists at ' .. jar, vim.log.levels.INFO)
-          return
-        end
-        vim.fn.mkdir(dir, 'p')
-        local url = 'https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/'
-          .. version
-          .. '/junit-platform-console-standalone-'
-          .. version
-          .. '.jar'
-        vim.notify('Downloading JUnit Platform Console Standalone ' .. version .. '...', vim.log.levels.INFO)
-        vim.fn.system { 'curl', '-L', '-o', jar, url }
-        if vim.v.shell_error == 0 then
-          vim.notify('JUnit jar downloaded successfully!', vim.log.levels.INFO)
-        else
-          vim.notify('Failed to download JUnit jar', vim.log.levels.ERROR)
-        end
-      end, { desc = 'Download JUnit Platform Console Standalone jar for neotest-java' })
-    end,
-  },
+  -- NOTE: Neotest is now configured in lua/custom/plugins/neotest-notifications.lua
+  -- with nvim-notify integration, global keymaps, signs, and virtual_text.
 
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',

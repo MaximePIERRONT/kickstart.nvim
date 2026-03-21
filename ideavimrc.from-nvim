@@ -1,0 +1,129 @@
+" IdeaVim keymap profile generated from Neovim config (balanced mode)
+" Save this file as a side profile. To use it from ~/.ideavimrc:
+"   source ~/.config/nvim/ideavimrc.from-nvim
+
+" =========================
+" Core options
+" =========================
+set nocompatible
+set number
+set relativenumber
+set incsearch
+set hlsearch
+set ignorecase
+set smartcase
+
+" Use Space as <leader>
+let mapleader = " "
+
+" Yank/Delete/Paste use system clipboard
+set clipboard+=unnamed
+set clipboard+=unnamedplus
+
+" =========================
+" Window navigation (like Neovim)
+" =========================
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" =========================
+" Search / navigation
+" =========================
+nnoremap <leader>sf <Action>(GotoFile)
+nnoremap <leader>sg <Action>(FindInPath)
+nnoremap <leader>ss <Action>(SearchEverywhere)
+nnoremap <leader>sw <Action>(FindWordAtCaret)
+nnoremap <leader>sd <Action>(ActivateProblemsViewToolWindow)
+nnoremap <leader>sr <Action>(RecentFiles)
+nnoremap <leader>s. <Action>(RecentFiles)
+nnoremap <leader>sc <Action>(GotoAction)
+nnoremap <leader><leader> <Action>(RecentFiles)
+nnoremap <leader>/ <Action>(Find)
+nnoremap <leader>s/ <Action>(FindInPath)
+
+" Help / keymaps (best IntelliJ equivalent)
+nnoremap <leader>sh <Action>(QuickJavaDoc)
+nnoremap <leader>sk <Action>(ShowSettings)
+
+" =========================
+" LSP-like / code intelligence
+" =========================
+nnoremap grd <Action>(GotoDeclaration)
+nnoremap gri <Action>(GotoImplementation)
+nnoremap grr <Action>(FindUsages)
+nnoremap grt <Action>(GotoTypeDeclaration)
+nnoremap gO <Action>(FileStructurePopup)
+nnoremap gW <Action>(SearchEverywhere)
+
+nnoremap grn <Action>(RenameElement)
+nnoremap gra <Action>(ShowIntentionActions)
+xnoremap gra <Action>(ShowIntentionActions)
+nnoremap <A-CR> <Action>(ShowIntentionActions)
+xnoremap <A-CR> <Action>(ShowIntentionActions)
+nnoremap <leader>. <Action>(ShowIntentionActions)
+xnoremap <leader>. <Action>(ShowIntentionActions)
+nnoremap grD <Action>(GotoDeclaration)
+
+" Diagnostics / quickfix equivalent
+nnoremap <leader>q <Action>(ActivateProblemsViewToolWindow)
+
+" Format
+nnoremap <leader>f <Action>(ReformatCode)
+xnoremap <leader>f <Action>(ReformatCode)
+
+" =========================
+" Git / VCS (fugitive-like)
+" =========================
+nnoremap <leader>gs <Action>(ActivateVersionControlToolWindow)
+nnoremap <leader>gb <Action>(Annotate)
+nnoremap <leader>gd <Action>(Compare.SameVersion)
+nnoremap <leader>gl <Action>(Vcs.Show.Log)
+nnoremap <leader>gp <Action>(Vcs.Push)
+nnoremap <leader>gP <Action>(Vcs.UpdateProject)
+nnoremap <leader>gc <Action>(CheckinProject)
+nnoremap <leader>gB <Action>(OpenInBrowser)
+
+" Telescope git find equivalents
+nnoremap <leader>gfb <Action>(Git.Branches)
+nnoremap <leader>gfc <Action>(Vcs.Show.Log)
+nnoremap <leader>gfs <Action>(Vcs.Show.Log)
+
+" =========================
+" Debugging (DAP-like)
+" =========================
+nnoremap <F5> <Action>(Resume)
+nnoremap <F1> <Action>(StepInto)
+nnoremap <F2> <Action>(StepOver)
+nnoremap <F3> <Action>(StepOut)
+nnoremap <F7> <Action>(ActivateDebugToolWindow)
+nnoremap <leader>b <Action>(ToggleLineBreakpoint)
+nnoremap <leader>B <Action>(ViewBreakpoints)
+
+" =========================
+" Java-specific (from ftplugin/java.lua)
+" =========================
+nnoremap <leader>ji <Action>(OptimizeImports)
+nnoremap <leader>jc <Action>(IntroduceConstant)
+xnoremap <leader>jm <Action>(ExtractMethod)
+xnoremap <leader>jv <Action>(IntroduceVariable)
+
+" Test actions
+nnoremap <leader>jt <Action>(RunContextTest)
+nnoremap <leader>jf <Action>(RunClass)
+nnoremap <leader>js <Action>(ActivateRunToolWindow)
+nnoremap <leader>jo <Action>(ActivateRunToolWindow)
+nnoremap <leader>jd <Action>(DebugClass)
+
+" Toggle Java test/source
+nnoremap <leader>tt <Action>(GotoTest)
+
+" =========================
+" Extra toggles from your config
+" =========================
+nnoremap <leader>th <Action>(ToggleInlayHintsGlobally)
+nnoremap <leader>tb <Action>(Annotate)
+
+" Optional: keep Esc behavior close to Neovim
+nnoremap <Esc> :nohlsearch<CR>
