@@ -296,6 +296,138 @@ local function coverage_summary_lines(module_dir)
   return lines, report_html, nil
 end
 
+local function parse_surefire_reports(module_dir)
+  local reports_dir = module_dir .. '/target/surefire-reports'
+  if vim.fn.isdirectory(reports_dir) ~= 1 then
+    return nil, 'Reports directory not found: ' .. reports_dir
+  end
+
+  local total_tests = 0
+  local total_failures = 0
+  local total_errors = 0
+  local total_skipped = 0
+  local total_time = 0.0
+  local test_cases = {}
+
+  local files = vim.fn.glob(reports_dir .. '/*.xml', true, true)
+  for _, file in ipairs(files) do
+    local content = table.concat(vim.fn.readfile(file), '\n')
+    local testsuite = content:match '<testsuite ([^>]*)>'
+    if testsuite then
+      local tests = tonumber(testsuite:match 'tests="(%d+)"') or 0
+      local failures = tonumber(testsuite:match 'failures="(%d+)"') or 0
+      local errors = tonumber(testsuite:match 'errors="(%d+)"') or 0
+      local skipped = tonumber(testsuite:match 'skipped="(%d+)"') or 0
+      local time = tonumber(testsuite:match 'time="([%d.]+)"') or 0
+      local name = testsuite:match 'name="([^"]+)"' or vim.fn.fnamemodify(file, ':t:r')
+
+      total_tests = total_tests + tests
+      total_failures = total_failures + failures
+      total_errors = total_errors + errors
+      total_skipped = total_skipped + skipped
+      total_time = total_time + time
+
+      local status = 'pass'
+      local status_icon = 'ok'
+      if failures > 0 then
+        status = 'fail'
+        status_icon = 'fail'
+      elseif errors > 0 then
+        status = 'error'
+        status_icon = 'err'
+      elseif skipped > 0 then
+        status = 'skip'
+        status_icon = 'skip'
+      end
+
+      table.insert(test_cases, {
+        name = name,
+        tests = tests,
+        failures = failures,
+        errors = errors,
+        skipped = skipped,
+        time = time,
+        status = status,
+        status_icon = status_icon,
+      })
+    end
+  end
+
+  if total_tests == 0 then
+    return nil, 'No test reports found'
+  end
+
+  return {
+    total_tests = total_tests,
+    total_failures = total_failures,
+    total_errors = total_errors,
+    total_skipped = total_skipped,
+    total_time = total_time,
+    test_cases = test_cases,
+  }
+end
+
+local function test_summary_lines(module_dir, stats)
+  local lines = {
+    'Java Module Test Results',
+    'Module: ' .. module_dir,
+    '',
+    string.format('Tests run: %d', stats.total_tests),
+    string.format('Failures: %d', stats.total_failures),
+    string.format('Errors: %d', stats.total_errors),
+    string.format('Skipped: %d', stats.total_skipped),
+    string.format('Time: %.3fs', stats.total_time),
+    '',
+    'Test Classes:',
+  }
+
+  for _, tc in ipairs(stats.test_cases) do
+    local icon = tc.status_icon
+    local detail = ''
+    if tc.failures > 0 then
+      detail = string.format(' (%d fail)', tc.failures)
+    elseif tc.errors > 0 then
+      detail = string.format(' (%d err)', tc.errors)
+    elseif tc.skipped > 0 then
+      detail = string.format(' (%d skip)', tc.skipped)
+    end
+    table.insert(lines, string.format('  [%s] %s (%d tests)%s', icon, tc.name, tc.tests, detail))
+  end
+
+  return lines
+end
+
+local last_test_summary_file = nil
+
+local function save_test_summary(module_dir, stats)
+  local summary_dir = vim.fn.stdpath 'state' .. '/java-test-summaries'
+  vim.fn.mkdir(summary_dir, 'p')
+
+  local timestamp = os.date '%Y%m%d_%H%M%S'
+  local filename = summary_dir .. '/summary_' .. timestamp .. '.txt'
+  local file = io.open(filename, 'w')
+  if not file then
+    return nil, 'Could not create summary file'
+  end
+
+  local lines = test_summary_lines(module_dir, stats)
+  for _, line in ipairs(lines) do
+    file:write(line .. '\n')
+  end
+  file:close()
+
+  last_test_summary_file = filename
+  return filename
+end
+
+local function view_last_test_summary()
+  if not last_test_summary_file or vim.fn.filereadable(last_test_summary_file) ~= 1 then
+    vim.notify('No test summary available. Run :JavaModuleTest first.', vim.log.levels.WARN, { title = 'JavaTestSummary' })
+    return
+  end
+  vim.cmd('edit ' .. last_test_summary_file)
+end
+
 local function run_module_maven(args, opts)
   opts = opts or {}
 
@@ -342,7 +474,30 @@ local function run_module_tests()
   run_module_maven({ 'test' }, {
     title = 'JavaModuleTest',
     on_success = function(module_dir)
-      vim.notify('Module tests passed: ' .. module_dir, vim.log.levels.INFO, { title = 'JavaModuleTest' })
+      local stats, err = parse_surefire_reports(module_dir)
+      if not stats then
+        vim.notify('Module tests passed but could not parse reports: ' .. err, vim.log.levels.WARN, { title = 'JavaModuleTest' })
+        return
+      end
+
+      local has_failures = stats.total_failures > 0 or stats.total_errors > 0
+      local summary_file = save_test_summary(module_dir, stats)
+
+      if has_failures then
+        vim.notify('Tests completed with failures. Use <leader>js to view summary.', vim.log.levels.ERROR, { title = 'JavaModuleTest' })
+      end
+
+      local lines = test_summary_lines(module_dir, stats)
+      table.insert(lines, '')
+      if has_failures then
+        table.insert(lines, 'Summary saved to:')
+        table.insert(lines, summary_file)
+        table.insert(lines, '')
+        table.insert(lines, 'Use <leader>js to view summary.')
+      end
+      table.insert(lines, 'Press q or <Esc> to close this window.')
+
+      show_popup('Java Module Test Results', lines)
     end,
   })
 end
@@ -463,6 +618,7 @@ local config = {
     vim.keymap.set('v', '<leader>jm', function() jdtls.extract_method(true) end, vim.tbl_extend('force', opts, { desc = '[J]ava Extract [M]ethod' }))
     vim.keymap.set('v', '<leader>jv', jdtls.extract_variable, vim.tbl_extend('force', opts, { desc = '[J]ava Extract [V]ariable' }))
     vim.keymap.set('n', '<leader>jT', run_module_tests, vim.tbl_extend('force', opts, { desc = '[J]ava Run Module [T]ests' }))
+    vim.keymap.set('n', '<leader>js', view_last_test_summary, vim.tbl_extend('force', opts, { desc = '[J]ava Test Summary [S]iew' }))
     vim.keymap.set('n', '<leader>jR', run_module_coverage, vim.tbl_extend('force', opts, { desc = '[J]ava Module Cove[R]age' }))
     vim.keymap.set('n', '<leader>jC', function() java_test_check { notify = true } end, vim.tbl_extend('force', opts, { desc = '[J]ava Test [C]heck' }))
   end,
