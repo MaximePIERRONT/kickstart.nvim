@@ -6,6 +6,9 @@ on:
   push:
     branches: [main, master]
 
+env:
+  MAVEN_OPTS: -Dmaven.repo.local=${{ github.workspace }}/.m2/repository
+
 jobs:
   maven-tests:
     runs-on: ubuntu-latest
@@ -26,12 +29,41 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: maven-test-results
           path: test-project/core/target/surefire-reports
 
-  neotest-validation:
+  neotest-simple:
     runs-on: ubuntu-latest
-    needs: maven-tests
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git ripgrep fd-find unzip curl
+
+      - name: Install Neovim
+        run: |
+          sudo add-apt-repository -y ppa:neovim-ppa/unstable
+          sudo apt-get update
+          sudo apt-get install -y neovim
+
+      - name: Install plugins
+        run: |
+          nvim --headless "+Lazy! sync" +qa! 2>&1 || true
+
+      - name: Run simple neotest test
+        run: |
+          nvim --headless \
+            -c "set runtimepath+=." \
+            -c "luafile .github/workflows/test-neotest-simple.lua" \
+            -c "qa!" 2>&1
+
+  neotest-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: neotest-simple
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +72,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git ripgrep fd-find unzip curl
 
       - name: Install Neovim
         run: |
@@ -57,20 +94,18 @@ jobs:
           curl -sL https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar \
             -o ~/.local/share/neotest-java/junit-platform-console-standalone.jar
 
-      - name: Validate Neotest Java Configuration
+      - name: Set environment for neotest-java
         run: |
-          nvim --headless \
-            -c "lua vim.env.JDTLS_JAVA_TOOLS='false'; vim.env.NEOTEST_JAVA_CONSOLE_JAR='${HOME}/.local/share/neotest-java/junit-platform-console-standalone.jar'" \
-            -c "lua require('ftplugin.java').java_test_check()" \
-            -c "qa!" 2>&1 || true
+          echo "NEOTEST_JAVA_CONSOLE_JAR=${HOME}/.local/share/neotest-java/junit-platform-console-standalone.jar" >> $GITHUB_ENV
+          echo "JDTLS_JAVA_TOOLS=false" >> $GITHUB_ENV
 
-      - name: Test Neotest Keymaps Available
+      - name: Install plugins
+        run: |
+          nvim --headless "+Lazy! sync" +qa! 2>&1 || true
+
+      - name: Run full neotest test
         run: |
           nvim --headless \
-            -c "set ft=java" \
-            -c "redir! > /tmp/neotest_keymaps.txt" \
-            -c "map <leader>j" \
-            -c "redir END" \
+            -c "set runtimepath+=." \
+            -c "luafile .github/workflows/test-neotest-full.lua" \
             -c "qa!" 2>&1
-          grep -q "jf" /tmp/neotest_keymaps.txt && echo "✓ <leader>jf keymap found" || (echo "✗ <leader>jf keymap NOT found" && exit 1)
-          grep -q "jt" /tmp/neotest_keymaps.txt && echo "✓ <leader>jt keymap found" || (echo "✗ <leader>jt keymap NOT found" && exit 1)
