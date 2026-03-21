@@ -528,13 +528,20 @@ local config = {
 
       local current_file = vim.api.nvim_buf_get_name(0)
       local module_dir = nearest_pom_dir(current_file)
-      if module_dir and vim.fn.getcwd() ~= module_dir then
+      local original_cwd = vim.fn.getcwd()
+      local cwd_changed = false
+
+      if module_dir and original_cwd ~= module_dir then
         vim.cmd.lcd(module_dir)
+        cwd_changed = true
       end
 
       local ok, neotest = pcall(require, 'neotest')
       if not ok then
         vim.notify('Impossible de charger neotest', vim.log.levels.ERROR, { title = 'Neotest Java' })
+        if cwd_changed then
+          vim.cmd.lcd(original_cwd)
+        end
         return
       end
 
@@ -554,7 +561,16 @@ local config = {
       local run_ok, err = pcall(wrapped_run, target)
       if not run_ok then
         vim.notify('Echec lancement test: ' .. tostring(err), vim.log.levels.ERROR, { title = 'Neotest Java' })
+        if cwd_changed then
+          vim.cmd.lcd(original_cwd)
+        end
         return
+      end
+
+      if cwd_changed then
+        vim.schedule(function()
+          vim.cmd.lcd(original_cwd)
+        end)
       end
     end
 
