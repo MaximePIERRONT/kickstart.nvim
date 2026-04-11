@@ -163,9 +163,9 @@ function M.run_file()
   vim.notify('Running: ' .. table.concat(cmd, ' '), vim.log.levels.INFO)
 
   vim.system(cmd, { text = true, cwd = pom_dir }, function(obj)
-    if obj.code then
+    if obj.signal and obj.signal ~= 0 then
       vim.schedule(function()
-        vim.notify('Maven test failed', vim.log.levels.ERROR)
+        vim.notify('Maven process killed', vim.log.levels.ERROR)
       end)
       return
     end
@@ -232,9 +232,9 @@ function M.run_all()
   vim.notify('Running: ' .. table.concat(cmd, ' '), vim.log.levels.INFO)
 
   vim.system(cmd, { text = true, cwd = pom_dir }, function(obj)
-    if obj.code then
+    if obj.signal and obj.signal ~= 0 then
       vim.schedule(function()
-        vim.notify('Maven test failed', vim.log.levels.ERROR)
+        vim.notify('Maven process killed', vim.log.levels.ERROR)
       end)
       return
     end
