@@ -28,12 +28,6 @@ return {
       { '<leader>jd', function() require('neotest').run.run { strategy = 'dap' } end, desc = '[J]ava test: debug' },
     },
     config = function()
-      local junit_dir = vim.fn.stdpath('data') .. '/neotest-java'
-      local junit_jar = vim.fn.glob(junit_dir .. '/junit-platform-console-standalone-*.jar')
-      if junit_jar == '' then
-        vim.cmd 'NeotestJava setup'
-      end
-
       require('neotest').setup {
         adapters = {
           require('neotest-java'),
@@ -45,6 +39,14 @@ return {
           skipped = '○',
         },
       }
+
+      vim.schedule(function()
+        local junit_dir = vim.fn.stdpath('data') .. '/neotest-java'
+        local junit_jar = vim.fn.glob(junit_dir .. '/junit-platform-console-standalone-*.jar')
+        if junit_jar == '' then
+          vim.cmd 'NeotestJava setup'
+        end
+      end)
     end,
   },
 }
