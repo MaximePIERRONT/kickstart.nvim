@@ -8,6 +8,12 @@
 ---@type LazySpec
 return {
   {
+    'rcasia/neotest-java',
+    build = function()
+      vim.cmd 'NeotestJava setup'
+    end,
+  },
+  {
     'nvim-neotest/neotest',
     dependencies = {
       'nvim-neotest/nvim-nio',
@@ -23,11 +29,9 @@ return {
     },
     config = function()
       require('neotest').setup {
-        -- Java adapter: uses jdtls for test discovery and execution
         adapters = {
           require('neotest-java'),
         },
-        -- Icons in the sign column
         icons = {
           passed = '✓',
           failed = '✗',
