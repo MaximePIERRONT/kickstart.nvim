@@ -29,59 +29,20 @@ local function find_pom(bufpath)
   return nil, nil
 end
 
-local function find_module_root(pom_dir)
-  local parent_pom = pom_dir .. '/pom.xml'
-  local content = vim.fn.readfile(parent_pom)
-  local is_parent = false
-  for _, line in ipairs(content) do
-    if line:match '<packaging>pom</packaging>' or line:match '<modules>' then
-      is_parent = true
-      break
-    end
-  end
-  if is_parent then
-    return pom_dir
-  end
-  local dir = vim.fn.fnamemodify(pom_dir, ':h')
-  while dir ~= '' and dir ~= '/' do
-    local pom = dir .. '/pom.xml'
-    if vim.fn.filereadable(pom) == 1 then
-      local content = vim.fn.readfile(pom)
-      for _, line in ipairs(content) do
-        if line:match '<packaging>pom</packaging>' or line:match '<modules>' then
-          return dir
-        end
-      end
-    end
-    dir = vim.fn.fnamemodify(dir, ':h')
-  end
-  return pom_dir
-end
-
-local function get_module_path(pom_dir, project_root)
-  if pom_dir == project_root then
-    return nil
-  end
-  local rel = pom_dir:gsub(project_root .. '/', '')
-  return rel
-end
-
 local function get_class_name(bufpath)
-  local rel = nil
   local dir = vim.fn.fnamemodify(bufpath, ':p:h')
   while dir ~= '' and dir ~= '/' do
     local src_test = dir .. '/src/test/java'
     if vim.fn.isdirectory(src_test) == 1 then
-      rel = bufpath:gsub(src_test .. '/', ''):gsub('%.java$', '')
+      local prefix = src_test .. '/'
+      if bufpath:sub(1, #prefix) == prefix then
+        return bufpath:sub(#prefix + 1):gsub('%.java$', ''):gsub('/', '.')
+      end
       break
     end
     dir = vim.fn.fnamemodify(dir, ':h')
   end
-  if not rel then
-    local fpath = vim.fn.fnamemodify(bufpath, ':t:r')
-    return fpath
-  end
-  return rel:gsub('/', '.')
+  return vim.fn.fnamemodify(bufpath, ':t:r')
 end
 
 local function get_test_methods(bufnr)
@@ -188,26 +149,20 @@ function M.run_file()
 
   M.clear()
 
-  local pom_path, pom_dir = find_pom(bufpath)
-  if not pom_path then
+  local _, pom_dir = find_pom(bufpath)
+  if not pom_dir then
     vim.notify('No pom.xml found', vim.log.levels.ERROR)
     return
   end
 
-  local project_root = find_module_root(pom_dir)
-  local module_path = get_module_path(pom_dir, project_root)
   local class_name = get_class_name(bufpath)
   local test_methods = get_test_methods(bufnr)
 
-  local cmd = { 'mvn', 'test', '-f', pom_path }
-  if module_path and module_path ~= '' then
-    vim.list_extend(cmd, { '-pl', module_path })
-  end
-  vim.list_extend(cmd, { '-Dtest=' .. class_name })
+  local cmd = { 'mvn', 'test', '-Dtest=' .. class_name }
 
   vim.notify('Running: ' .. table.concat(cmd, ' '), vim.log.levels.INFO)
 
-  vim.system(cmd, { text = true }, function(obj)
+  vim.system(cmd, { text = true, cwd = pom_dir }, function(obj)
     if obj.code then
       vim.schedule(function()
         vim.notify('Maven test failed', vim.log.levels.ERROR)
@@ -218,13 +173,7 @@ function M.run_file()
     current_output = obj.stdout .. '\n' .. obj.stderr
 
     vim.schedule(function()
-      local report_dir
-      if module_path then
-        report_dir = module_path .. '/target/surefire-reports'
-      else
-        report_dir = 'target/surefire-reports'
-      end
-      local report_path = pom_dir .. '/' .. report_dir .. '/TEST-' .. class_name .. '.xml'
+      local report_path = pom_dir .. '/target/surefire-reports/TEST-' .. class_name .. '.xml'
       local results = parse_surefire_report(report_path)
 
       for _, method in ipairs(test_methods) do
@@ -269,21 +218,20 @@ function M.run_file()
 end
 
 function M.run_all()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local bufpath = vim.api.nvim_buf_get_name(bufnr)
+  local bufpath = vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf())
 
   M.clear()
 
-  local pom_path, pom_dir = find_pom(bufpath)
-  if not pom_path then
+  local _, pom_dir = find_pom(bufpath)
+  if not pom_dir then
     vim.notify('No pom.xml found', vim.log.levels.ERROR)
     return
   end
 
-  local cmd = { 'mvn', 'test', '-f', pom_path }
+  local cmd = { 'mvn', 'test' }
   vim.notify('Running: ' .. table.concat(cmd, ' '), vim.log.levels.INFO)
 
-  vim.system(cmd, { text = true }, function(obj)
+  vim.system(cmd, { text = true, cwd = pom_dir }, function(obj)
     if obj.code then
       vim.schedule(function()
         vim.notify('Maven test failed', vim.log.levels.ERROR)
