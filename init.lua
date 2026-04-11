@@ -609,8 +609,22 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        ts_ls = {}, -- TypeScript/JavaScript
-        vue_ls = {}, -- Vue LSP
+        ts_ls = {
+          filetypes = { 'typescript', 'typescriptreact', 'javascript', 'javascriptreact', 'vue' },
+        },
+        vue_ls = {
+          init_options = {
+            typescript = {
+              tsdk = vim.fn.stdpath 'data' .. '/mason/packages/typescript-language-server/node_modules/typescript/lib',
+            },
+          },
+          on_new_config = function(new_config, new_root_dir)
+            local tsdk = new_root_dir .. '/node_modules/typescript/lib'
+            if vim.fn.isdirectory(tsdk) == 1 then
+              new_config.init_options.typescript = { tsdk = tsdk }
+            end
+          end,
+        },
 
         jdtls = {}, -- Java LSP (Maven support included)
 
