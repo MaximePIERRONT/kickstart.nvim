@@ -213,6 +213,27 @@ function M.run_file()
           })
         end
       end
+
+      local passed = 0
+      local failed = 0
+      for _, method in ipairs(test_methods) do
+        local result = results[method.name]
+        if result then
+          if result.status == 'failed' then
+            failed = failed + 1
+          else
+            passed = passed + 1
+          end
+        else
+          passed = passed + 1
+        end
+      end
+
+      if failed > 0 then
+        vim.notify(string.format('Tests: %d passed, %d failed', passed, failed), vim.log.levels.ERROR)
+      else
+        vim.notify(string.format('Tests: %d passed', passed), vim.log.levels.INFO)
+      end
     end)
   end)
 end
@@ -242,7 +263,7 @@ function M.run_all()
     current_output = obj.stdout .. '\n' .. obj.stderr
 
     vim.schedule(function()
-      vim.notify('All tests complete', vim.log.levels.INFO)
+      vim.notify('All tests finished', vim.log.levels.INFO)
     end)
   end)
 end
