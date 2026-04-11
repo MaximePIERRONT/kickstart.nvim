@@ -163,7 +163,7 @@ local function parse_surefire_report(report_path)
 end
 
 local function clear_signs(bufnr)
-  vim.fn.sign_unplace(sign_group, { id = '*', buffer = bufnr })
+  vim.fn.sign_unplace(sign_group, { buffer = bufnr })
 end
 
 local function clear_extmarks(bufnr)
