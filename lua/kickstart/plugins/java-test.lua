@@ -55,19 +55,23 @@ local function get_test_methods(bufnr)
   local methods = {}
   local query = vim.treesitter.query.parse('java', [[
         (method_declaration
-          (annotation
-            name: (identifier) @annotation_name
-            (#eq? @annotation_name "Test"))
+          [
+            (marker_annotation name: (identifier) @annotation_name)
+            (annotation name: (identifier) @annotation_name)
+          ]
           name: (identifier) @method_name
-          body: (block) @body
         ) @method
       ]])
 
   for _, captures, _ in query:iter_matches(root, bufnr) do
-    local method_name_node = captures[2]
-    local row = (method_name_node:start()) + 1
-    local name = vim.treesitter.query.get_node_text(method_name_node, bufnr)
-    table.insert(methods, { name = name, row = row })
+    local annotation_name = vim.treesitter.query.get_node_text(captures[1], bufnr)
+    if annotation_name ~= 'Test' then
+    else
+      local method_name_node = captures[2]
+      local row = (method_name_node:start()) + 1
+      local name = vim.treesitter.query.get_node_text(method_name_node, bufnr)
+      table.insert(methods, { name = name, row = row })
+    end
   end
   return methods
 end
@@ -78,37 +82,70 @@ local function parse_surefire_report(report_path)
   local xml_str = table.concat(content, '\n')
 
   local results = {}
-  for testcase_xml in xml_str:gmatch '<testcase [^>]->' do
+
+  -- Self-closing testcase tags: <testcase name="..." classname="..." time="..."/>
+  for testcase_xml in xml_str:gmatch '<testcase [^/]*/?>' do
     local name = testcase_xml:match 'name="([^"]*)"'
     local classname = testcase_xml:match 'classname="([^"]*)"'
     local time = testcase_xml:match 'time="([^"]*)"'
-    local failure_xml = testcase_xml:match '<failure [^>]->(.-)</failure>'
-    local error_xml = testcase_xml:match '<error [^>]->(.-)</error>'
     local skipped_xml = testcase_xml:match '<skipped[^/]*/?>'
+
+    if name then
+      local status = skipped_xml and 'skipped' or 'passed'
+      results[name] = {
+        classname = classname,
+        time = time,
+        status = status,
+        message = '',
+        stacktrace = '',
+      }
+    end
+  end
+
+  -- Non-self-closing testcase tags: <testcase ...>...</testcase>
+  -- These may contain <failure>, <error>, or <skipped>
+  for full_testcase in xml_str:gmatch '<testcase [^>]->.-</testcase>' do
+    local name = full_testcase:match 'name="([^"]*)"'
+    local classname = full_testcase:match 'classname="([^"]*)"'
+    local time = full_testcase:match 'time="([^"]*)"'
 
     if name then
       local status = 'passed'
       local message = ''
       local stacktrace = ''
 
-      if failure_xml then
+      local failure_start, failure_end, failure_body = full_testcase:find '<failure [^>]->'
+      if failure_start then
         status = 'failed'
-        local fail_msg = failure_xml:match 'message="([^"]*)"'
+        -- Extract message from failure tag attributes
+        local fail_msg = full_testcase:match 'message="([^"]*)"'
         message = fail_msg or ''
-        local lines = {}
-        for line in failure_xml:gmatch '[^\n]+' do
-          line = line:gsub('^%s+', ''):gsub('%s+$', '')
-          if line ~= '' and not line:match '^<failure' and not line:match '^</failure' then
-            table.insert(lines, line)
-            if #lines >= 5 then break end
+        -- Extract lines from failure body (between > and </failure>)
+        local body_start = full_testcase:find('>', failure_start)
+        local body_end = full_testcase:find('</failure>')
+        if body_start and body_end then
+          local body = full_testcase:sub(body_start + 1, body_end - 1)
+          local lines = {}
+          for line in body:gmatch '[^\n]+' do
+            line = line:gsub('^%s+', ''):gsub('%s+$', '')
+            if line ~= '' then
+              table.insert(lines, line)
+              if #lines >= 5 then break end
+            end
+          end
+          stacktrace = table.concat(lines, '\n')
+        end
+      else
+        local error_start = full_testcase:find '<error '
+        if error_start then
+          status = 'failed'
+          message = 'Error'
+        else
+          local skipped_pos = full_testcase:find '<skipped'
+          if skipped_pos then
+            status = 'skipped'
           end
         end
-        stacktrace = table.concat(lines, '\n')
-      elseif error_xml then
-        status = 'failed'
-        message = 'Error'
-      elseif skipped_xml then
-        status = 'skipped'
       end
 
       results[name] = {
@@ -120,6 +157,7 @@ local function parse_surefire_report(report_path)
       }
     end
   end
+
   return results
 end
 
