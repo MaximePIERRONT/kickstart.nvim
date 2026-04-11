@@ -610,7 +610,7 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         ts_ls = {}, -- TypeScript/JavaScript
-        volar = {}, -- Vue LSP
+        vue_ls = {}, -- Vue LSP
 
         jdtls = {}, -- Java LSP (Maven support included)
 
