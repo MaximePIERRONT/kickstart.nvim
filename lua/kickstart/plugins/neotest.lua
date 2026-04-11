@@ -11,7 +11,7 @@ return {
     'nvim-neotest/neotest',
     dependencies = {
       'nvim-neotest/nvim-nio',
-      'nvim-neotest/neotest-java',
+      'rcasia/neotest-java',
     },
     keys = {
       { '<leader>jt', function() require('neotest').run.run() end, desc = '[J]ava test: run under cursor' },
