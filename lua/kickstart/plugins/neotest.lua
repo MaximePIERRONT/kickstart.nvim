@@ -30,7 +30,12 @@ return {
     config = function()
       require('neotest').setup {
         adapters = {
-          require('neotest-java'),
+          require('neotest-java') {
+            java_home = (function()
+              local java_bin = vim.fn.exepath 'java'
+              return java_bin ~= '' and java_bin:match '^(.*)/bin/java$' or nil
+            end)(),
+          },
         },
         icons = {
           passed = '✓',
@@ -39,14 +44,6 @@ return {
           skipped = '○',
         },
       }
-
-      vim.schedule(function()
-        local junit_dir = vim.fn.stdpath('data') .. '/neotest-java'
-        local junit_jar = vim.fn.glob(junit_dir .. '/junit-platform-console-standalone-*.jar')
-        if junit_jar == '' then
-          vim.cmd 'NeotestJava setup'
-        end
-      end)
     end,
   },
 }
