@@ -14,12 +14,12 @@ return {
       'nvim-neotest/neotest-java',
     },
     keys = {
-      { '<leader>tt', function() require('neotest').run.run() end, desc = 'Run test under cursor' },
-      { '<leader>tT', function() require('neotest').run.run(vim.fn.expand('%')) end, desc = 'Run all tests in file' },
-      { '<leader>ts', function() require('neotest').run.stop() end, desc = 'Stop running tests' },
-      { '<leader>to', function() require('neotest').output.open({ enter = true, align = 'row' }) end, desc = 'Show test output' },
-      { '<leader>tS', function() require('neotest').summary.toggle() end, desc = 'Toggle test summary panel' },
-      { '<leader>td', function() require('neotest').run.run({ strategy = 'dap' }) end, desc = 'Debug test under cursor' },
+      { '<leader>jt', function() require('neotest').run.run() end, desc = '[J]ava test: run under cursor' },
+      { '<leader>jT', function() require('neotest').run.run(vim.fn.expand('%')) end, desc = '[J]ava test: run all in file' },
+      { '<leader>js', function() require('neotest').run.stop() end, desc = '[J]ava test: stop' },
+      { '<leader>jo', function() require('neotest').output.open { enter = true, align = 'row' } end, desc = '[J]ava test: output' },
+      { '<leader>jS', function() require('neotest').summary.toggle() end, desc = '[J]ava test: summary panel' },
+      { '<leader>jd', function() require('neotest').run.run { strategy = 'dap' } end, desc = '[J]ava test: debug' },
     },
     config = function()
       require('neotest').setup {
