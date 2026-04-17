@@ -212,6 +212,88 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+local function get_arglist()
+  local args = vim.fn.argv()
+  if #args == 0 then return nil, 'Arg list is empty' end
+  return args
+end
+
+local function buf_in_arglist(bufnr)
+  local args = vim.fn.argv()
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  for _, arg in ipairs(args) do
+    if arg == bufname then return true end
+  end
+  return false
+end
+
+local function toggle()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  if bufname == '' then
+    vim.notify('Cannot pin unnamed buffer', vim.log.levels.WARN)
+    return
+  end
+  if buf_in_arglist(bufnr) then
+    vim.cmd('argdelete ' .. vim.fn.shellescape(bufname))
+    vim.notify('Unpinned: ' .. vim.fs.basename(bufname), vim.log.levels.INFO)
+  else
+    vim.cmd('argadd ' .. vim.fn.shellescape(bufname))
+    vim.notify('Pinned: ' .. vim.fs.basename(bufname), vim.log.levels.INFO)
+  end
+end
+
+local function list()
+  local args = get_arglist()
+  if not args then
+    vim.notify('Arg list is empty. Use <leader>aa to pin files.', vim.log.levels.INFO)
+    return
+  end
+  local pickers = require('telescope.pickers')
+  local finders = require('telescope.finders')
+  local sorters = require('telescope.sorters')
+  local actions = require('telescope.actions')
+  local action_set = require('telescope.actions.set')
+  local results = {}
+  for i, arg in ipairs(args) do
+    local name = vim.fs.basename(arg)
+    table.insert(results, { index = i, name = name, path = arg, display = string.format('%d: %s', i, name) })
+  end
+  pickers.new({}, {
+    prompt_title = 'Pinned Files',
+    results_title = 'Arg List',
+    finder = finders.new_table({
+      results = results,
+      entry_maker = function(entry)
+        return { value = entry, display = entry.display, ordinal = entry.display, path = entry.path }
+      end,
+    }),
+    sorter = sorters.get_generic_fuzzy_sorter(),
+    attach_mappings = function(prompt_bufnr, _map)
+      actions.select_default:replace(function()
+        local selection = action_set.get_selected_entry()
+        if selection then
+          local entry = selection.value
+          vim.cmd('argdelete *')
+          vim.cmd('argadd ' .. vim.fn.shellescape(entry.path))
+          vim.cmd('edit ' .. vim.fn.shellescape(entry.path))
+          actions.close(prompt_bufnr)
+        end
+      end)
+      return true
+    end,
+  }):find()
+end
+
+vim.keymap.set('n', '<leader>aa', toggle, { desc = '[A]rglist: toggle [a]dd current file' })
+vim.keymap.set('n', '<leader>al', list, { desc = '[A]rglist: [l]ist pinned files' })
+vim.keymap.set('n', '<leader>an', '<cmd>next<cr>', { desc = '[A]rglist: [n]ext file' })
+vim.keymap.set('n', '<leader>ap', '<cmd>previous<cr>', { desc = '[A]rglist: [p]revious file' })
+vim.keymap.set('n', '<leader>ac', function()
+  vim.cmd('argdelete *')
+  vim.notify('Arg list cleared', vim.log.levels.INFO)
+end, { desc = '[A]rglist: [c]lear all' })
+
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
 -- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
@@ -320,7 +402,10 @@ require('lazy').setup({
         { '<leader>t', group = '[T]oggle' },
         { '<leader>j', group = '[J]ava Test', mode = { 'n' } },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
+        { '<leader>g', group = '[G]it' },
+        { '<leader>o', group = '[O]il file explorer' },
         { 'gr', group = 'LSP Actions', mode = { 'n' } },
+        { '<leader>r', group = '[R]efactor', mode = { 'n', 'v' } },
       },
     },
   },
@@ -819,25 +904,18 @@ require('lazy').setup({
     },
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
+  { -- Catppuccin colorscheme
+    'catppuccin/nvim',
+    name = 'catppuccin',
+    priority = 1000,
     config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('tokyonight').setup {
-        styles = {
-          comments = { italic = false }, -- Disable italics in comments
+      require('catppuccin').setup {
+        flavour = 'latte',
+        integrations = {
+          which_key = true,
         },
       }
-
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-day'
+      vim.cmd.colorscheme 'catppuccin-latte'
     end,
   },
 
