@@ -690,6 +690,37 @@ do
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
+  local function jdtls_java_executable()
+    if not vim.env.JDTLS_JAVA_HOME or vim.env.JDTLS_JAVA_HOME == '' then return nil, 'JDTLS_JAVA_HOME must point to a JDK 21+.' end
+
+    local executable = vim.fs.joinpath(vim.env.JDTLS_JAVA_HOME, 'bin', 'java')
+    if not vim.uv.fs_stat(executable) then return nil, 'JDTLS_JAVA_HOME/bin/java does not exist.' end
+
+    return executable, nil
+  end
+
+  local function java_major_version(executable)
+    if not executable then return nil end
+
+    local result = vim.system({ executable, '-version' }, { text = true }):wait()
+    local output = (result.stdout or '') .. (result.stderr or '')
+    local version = output:match 'version "([^"]+)"'
+    if not version then return nil end
+
+    local major = tonumber(version:match '^(%d+)')
+    if major == 1 then major = tonumber(version:match '^1%.(%d+)') end
+
+    return major
+  end
+
+  local vue_language_server_path = vim.fn.stdpath 'data' .. '/mason/packages/vue-language-server/node_modules/@vue/language-server'
+  local vue_typescript_plugin = {
+    name = '@vue/typescript-plugin',
+    location = vue_language_server_path,
+    languages = { 'vue' },
+    configNamespace = 'typescript',
+  }
+
   ---@type table<string, vim.lsp.Config>
   local servers = {
     -- clangd = {},
@@ -700,10 +731,24 @@ do
     -- Some languages (like typescript) have entire language plugins that can be useful:
     --    https://github.com/pmizio/typescript-tools.nvim
     --
-    -- But for many setups, the LSP (`ts_ls`) will work just fine
-    -- ts_ls = {},
-
-    stylua = {}, -- Used to format Lua code
+    -- vtsls replaces ts_ls here because Vue 3 language-tools requires it for TypeScript in .vue files.
+    vtsls = {
+      settings = {
+        vtsls = {
+          tsserver = {
+            globalPlugins = { vue_typescript_plugin },
+          },
+        },
+      },
+      filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
+    },
+    vue_ls = {},
+    html = {},
+    cssls = {},
+    jsonls = {},
+    yamlls = {},
+    bashls = {},
+    lemminx = {},
 
     -- Special Lua Config, as recommended by neovim help docs
     lua_ls = {
@@ -740,6 +785,23 @@ do
     },
   }
 
+  local jdtls_java, jdtls_error = jdtls_java_executable()
+  local jdtls_java_version = java_major_version(jdtls_java)
+  if jdtls_java_version and jdtls_java_version >= 21 then
+    servers.jdtls = { cmd = { 'jdtls', '--java-executable', jdtls_java } }
+  else
+    if jdtls_java and jdtls_java_version then jdtls_error = 'JDTLS_JAVA_HOME must point to a JDK 21+; current version is Java ' .. jdtls_java_version .. '.' end
+    local jdtls_error_shown = false
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = 'java',
+      callback = function()
+        if jdtls_error_shown then return end
+        jdtls_error_shown = true
+        vim.schedule(function() vim.notify('Java LSP disabled: ' .. jdtls_error, vim.log.levels.ERROR) end)
+      end,
+    })
+  end
+
   vim.pack.add {
     gh 'neovim/nvim-lspconfig',
     gh 'mason-org/mason.nvim',
@@ -758,8 +820,10 @@ do
   --
   -- You can press `g?` for help in this menu.
   local ensure_installed = vim.tbl_keys(servers or {})
+  if not vim.tbl_contains(ensure_installed, 'jdtls') then table.insert(ensure_installed, 'jdtls') end
   vim.list_extend(ensure_installed, {
     -- You can add other tools here that you want Mason to install
+    'stylua',
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
