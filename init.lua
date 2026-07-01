@@ -251,6 +251,18 @@ do
     group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
     callback = function() vim.hl.on_yank() end,
   })
+
+  vim.api.nvim_create_autocmd('FileType', {
+    desc = 'Use IntelliJ-like Java indentation defaults',
+    pattern = 'java',
+    group = vim.api.nvim_create_augroup('kickstart-java-indent', { clear = true }),
+    callback = function()
+      vim.bo.expandtab = true
+      vim.bo.tabstop = 4
+      vim.bo.shiftwidth = 4
+      vim.bo.softtabstop = 4
+    end,
+  })
 end
 
 -- ============================================================
@@ -822,8 +834,14 @@ do
   local ensure_installed = vim.tbl_keys(servers or {})
   if not vim.tbl_contains(ensure_installed, 'jdtls') then table.insert(ensure_installed, 'jdtls') end
   vim.list_extend(ensure_installed, {
-    -- You can add other tools here that you want Mason to install
     'stylua',
+    'prettier',
+    'shfmt',
+    'google-java-format',
+    'eslint_d',
+    'shellcheck',
+    'markdownlint',
+    'checkstyle',
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -844,13 +862,24 @@ do
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
       local enabled_filetypes = {
-        -- lua = true,
-        -- python = true,
+        lua = true,
+        javascript = true,
+        javascriptreact = true,
+        typescript = true,
+        typescriptreact = true,
+        vue = true,
+        html = true,
+        css = true,
+        json = true,
+        yaml = true,
+        markdown = true,
+        sh = true,
+        bash = true,
+        java = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
+        return { timeout_ms = 2000, lsp_format = 'fallback' }
       else
         return nil
       end
@@ -858,22 +887,68 @@ do
     default_format_opts = {
       lsp_format = 'fallback', -- Use external formatters if configured below, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
     },
-    -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
-      -- Conform can also run multiple formatters sequentially
-      -- python = { "isort", "black" },
-      --
-      -- You can use 'stop_after_first' to run the first available formatter from the list
-      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      lua = { 'stylua' },
+      javascript = { 'prettier' },
+      javascriptreact = { 'prettier' },
+      typescript = { 'prettier' },
+      typescriptreact = { 'prettier' },
+      vue = { 'prettier' },
+      html = { 'prettier' },
+      css = { 'prettier' },
+      json = { 'prettier' },
+      yaml = { 'prettier' },
+      markdown = { 'prettier' },
+      sh = { 'shfmt' },
+      bash = { 'shfmt' },
+      java = { 'google-java-format' },
+    },
+    formatters = {
+      ['google-java-format'] = {
+        prepend_args = { '--aosp' },
+      },
     },
   }
 
-  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true } end, { desc = '[F]ormat buffer' })
+  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true, lsp_format = 'fallback' } end, { desc = '[F]ormat buffer' })
 end
 
 -- ============================================================
--- SECTION 8: AUTOCOMPLETE & SNIPPETS
+-- SECTION 8: LINTING
+-- nvim-lint setup, automatic linting, manual lint keymap
+-- ============================================================
+do
+  -- [[ Linting ]]
+  vim.pack.add { gh 'mfussenegger/nvim-lint' }
+
+  local lint = require 'lint'
+  require('lint.linters.checkstyle').config_file = vim.fs.joinpath(vim.fn.stdpath 'config', 'config', 'checkstyle', 'java-indent.xml')
+
+  lint.linters_by_ft = {
+    javascript = { 'eslint_d' },
+    javascriptreact = { 'eslint_d' },
+    typescript = { 'eslint_d' },
+    typescriptreact = { 'eslint_d' },
+    vue = { 'eslint_d' },
+    sh = { 'shellcheck' },
+    bash = { 'shellcheck' },
+    markdown = { 'markdownlint' },
+    java = { 'checkstyle' },
+  }
+
+  local lint_augroup = vim.api.nvim_create_augroup('kickstart-lint', { clear = true })
+  vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWritePost', 'InsertLeave' }, {
+    group = lint_augroup,
+    callback = function(args)
+      if vim.bo[args.buf].modifiable then lint.try_lint() end
+    end,
+  })
+
+  vim.keymap.set('n', '<leader>l', function() lint.try_lint() end, { desc = '[L]int buffer' })
+end
+
+-- ============================================================
+-- SECTION 9: AUTOCOMPLETE & SNIPPETS
 -- blink.cmp and luasnip setup
 -- ============================================================
 do
@@ -955,7 +1030,7 @@ do
 end
 
 -- ============================================================
--- SECTION 9: TREESITTER
+-- SECTION 10: TREESITTER
 -- Parser installation, syntax highlighting, folds, indentation
 -- ============================================================
 do
@@ -1017,7 +1092,7 @@ do
 end
 
 -- ============================================================
--- SECTION 10: OPTIONAL EXAMPLES / NEXT STEPS
+-- SECTION 11: OPTIONAL EXAMPLES / NEXT STEPS
 -- kickstart.plugins.* examples
 -- ============================================================
 do

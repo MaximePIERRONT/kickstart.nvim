@@ -6,8 +6,8 @@ Objectif : suivre les fonctionnalites souhaitees pour cette configuration Neovim
 
 - [x] LSP
 - [ ] Autocompletion
-- [ ] Formatage
-- [ ] Linter
+- [x] Formatage
+- [x] Linter
 
 ## P1 - Important
 
