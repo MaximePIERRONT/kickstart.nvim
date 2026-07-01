@@ -5,7 +5,7 @@ Objectif : suivre les fonctionnalites souhaitees pour cette configuration Neovim
 ## P0 - Indispensable
 
 - [x] LSP
-- [ ] Autocompletion
+- [x] Autocompletion
 - [x] Formatage
 - [x] Linter
 
