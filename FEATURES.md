@@ -41,9 +41,9 @@ Légende du statut :
 
 | Feature | Statut | Notes |
 | --- | --- | --- |
-| Navigation projet | [~] | Telescope files OK ; activer **neo-tree** (confort IntelliJ) |
+| Navigation projet | [x] | Telescope + **neo-tree** (`\` / `<leader>e`, suivi du fichier courant) |
 | Recherche fuzzy finder | [x] | Telescope (fichiers, grep, LSP) déjà là |
-| Git | [~] | `gitsigns` de base ; keymaps hunks + LazyGit en P2 |
+| Git | [x] | `gitsigns` + keymaps hunks (`<leader>h…`, `]c`/`[c`) ; LazyGit en P2 |
 | Lancer facilement un projet frontend avec npm | [ ] | Commandes / keymaps pour `npm run …` (dev, build, test) |
 | Lancer facilement un projet backend Java | [ ] | LSP jdtls (JDK 21+) + run **Maven** depuis Neovim |
 | Lancer facilement un projet backend Micronaut | [ ] | Via goals Maven Micronaut (`mn:run` / équivalent), sans Gradle |
@@ -79,7 +79,7 @@ Légende du statut :
 ## Ordre d’implémentation
 
 1. **Socle langages (P0)** — ~~Java (jdtls) + Vue/TS (vtsls) + HTML/CSS/JSON/YAML/Bash/XML + prettier / eslint / google-java-format / checkstyle~~ ✅
-2. **Navigation & Git (P1)** — neo-tree + keymaps gitsigns
+2. **Navigation & Git (P1)** — ~~neo-tree + keymaps gitsigns~~ ✅
 3. **Runners projets (P1)** — npm + Maven (Java / Micronaut)
 4. **Debug & Tests (P2)** — DAP + keymaps `mvn test` (setup auto via Mason)
 5. **LazyGit / LazyDocker (P2)**
