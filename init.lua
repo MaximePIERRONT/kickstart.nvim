@@ -251,6 +251,18 @@ do
     group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
     callback = function() vim.hl.on_yank() end,
   })
+
+  vim.api.nvim_create_autocmd('FileType', {
+    desc = 'Use IntelliJ-like Java indentation defaults',
+    pattern = 'java',
+    group = vim.api.nvim_create_augroup('kickstart-java-indent', { clear = true }),
+    callback = function()
+      vim.bo.expandtab = true
+      vim.bo.tabstop = 4
+      vim.bo.shiftwidth = 4
+      vim.bo.softtabstop = 4
+    end,
+  })
 end
 
 -- ============================================================
@@ -690,6 +702,37 @@ do
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
+  local function jdtls_java_executable()
+    if not vim.env.JDTLS_JAVA_HOME or vim.env.JDTLS_JAVA_HOME == '' then return nil, 'JDTLS_JAVA_HOME must point to a JDK 21+.' end
+
+    local executable = vim.fs.joinpath(vim.env.JDTLS_JAVA_HOME, 'bin', 'java')
+    if not vim.uv.fs_stat(executable) then return nil, 'JDTLS_JAVA_HOME/bin/java does not exist.' end
+
+    return executable, nil
+  end
+
+  local function java_major_version(executable)
+    if not executable then return nil end
+
+    local result = vim.system({ executable, '-version' }, { text = true }):wait()
+    local output = (result.stdout or '') .. (result.stderr or '')
+    local version = output:match 'version "([^"]+)"'
+    if not version then return nil end
+
+    local major = tonumber(version:match '^(%d+)')
+    if major == 1 then major = tonumber(version:match '^1%.(%d+)') end
+
+    return major
+  end
+
+  local vue_language_server_path = vim.fn.stdpath 'data' .. '/mason/packages/vue-language-server/node_modules/@vue/language-server'
+  local vue_typescript_plugin = {
+    name = '@vue/typescript-plugin',
+    location = vue_language_server_path,
+    languages = { 'vue' },
+    configNamespace = 'typescript',
+  }
+
   ---@type table<string, vim.lsp.Config>
   local servers = {
     -- clangd = {},
@@ -700,10 +743,24 @@ do
     -- Some languages (like typescript) have entire language plugins that can be useful:
     --    https://github.com/pmizio/typescript-tools.nvim
     --
-    -- But for many setups, the LSP (`ts_ls`) will work just fine
-    -- ts_ls = {},
-
-    stylua = {}, -- Used to format Lua code
+    -- vtsls replaces ts_ls here because Vue 3 language-tools requires it for TypeScript in .vue files.
+    vtsls = {
+      settings = {
+        vtsls = {
+          tsserver = {
+            globalPlugins = { vue_typescript_plugin },
+          },
+        },
+      },
+      filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
+    },
+    vue_ls = {},
+    html = {},
+    cssls = {},
+    jsonls = {},
+    yamlls = {},
+    bashls = {},
+    lemminx = {},
 
     -- Special Lua Config, as recommended by neovim help docs
     lua_ls = {
@@ -740,6 +797,23 @@ do
     },
   }
 
+  local jdtls_java, jdtls_error = jdtls_java_executable()
+  local jdtls_java_version = java_major_version(jdtls_java)
+  if jdtls_java_version and jdtls_java_version >= 21 then
+    servers.jdtls = { cmd = { 'jdtls', '--java-executable', jdtls_java } }
+  else
+    if jdtls_java and jdtls_java_version then jdtls_error = 'JDTLS_JAVA_HOME must point to a JDK 21+; current version is Java ' .. jdtls_java_version .. '.' end
+    local jdtls_error_shown = false
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = 'java',
+      callback = function()
+        if jdtls_error_shown then return end
+        jdtls_error_shown = true
+        vim.schedule(function() vim.notify('Java LSP disabled: ' .. jdtls_error, vim.log.levels.ERROR) end)
+      end,
+    })
+  end
+
   vim.pack.add {
     gh 'neovim/nvim-lspconfig',
     gh 'mason-org/mason.nvim',
@@ -758,8 +832,16 @@ do
   --
   -- You can press `g?` for help in this menu.
   local ensure_installed = vim.tbl_keys(servers or {})
+  if not vim.tbl_contains(ensure_installed, 'jdtls') then table.insert(ensure_installed, 'jdtls') end
   vim.list_extend(ensure_installed, {
-    -- You can add other tools here that you want Mason to install
+    'stylua',
+    'prettier',
+    'shfmt',
+    'google-java-format',
+    'eslint_d',
+    'shellcheck',
+    'markdownlint',
+    'checkstyle',
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -780,13 +862,24 @@ do
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
       local enabled_filetypes = {
-        -- lua = true,
-        -- python = true,
+        lua = true,
+        javascript = true,
+        javascriptreact = true,
+        typescript = true,
+        typescriptreact = true,
+        vue = true,
+        html = true,
+        css = true,
+        json = true,
+        yaml = true,
+        markdown = true,
+        sh = true,
+        bash = true,
+        java = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
+        return { timeout_ms = 2000, lsp_format = 'fallback' }
       else
         return nil
       end
@@ -794,22 +887,68 @@ do
     default_format_opts = {
       lsp_format = 'fallback', -- Use external formatters if configured below, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
     },
-    -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
-      -- Conform can also run multiple formatters sequentially
-      -- python = { "isort", "black" },
-      --
-      -- You can use 'stop_after_first' to run the first available formatter from the list
-      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      lua = { 'stylua' },
+      javascript = { 'prettier' },
+      javascriptreact = { 'prettier' },
+      typescript = { 'prettier' },
+      typescriptreact = { 'prettier' },
+      vue = { 'prettier' },
+      html = { 'prettier' },
+      css = { 'prettier' },
+      json = { 'prettier' },
+      yaml = { 'prettier' },
+      markdown = { 'prettier' },
+      sh = { 'shfmt' },
+      bash = { 'shfmt' },
+      java = { 'google-java-format' },
+    },
+    formatters = {
+      ['google-java-format'] = {
+        prepend_args = { '--aosp' },
+      },
     },
   }
 
-  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true } end, { desc = '[F]ormat buffer' })
+  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true, lsp_format = 'fallback' } end, { desc = '[F]ormat buffer' })
 end
 
 -- ============================================================
--- SECTION 8: AUTOCOMPLETE & SNIPPETS
+-- SECTION 8: LINTING
+-- nvim-lint setup, automatic linting, manual lint keymap
+-- ============================================================
+do
+  -- [[ Linting ]]
+  vim.pack.add { gh 'mfussenegger/nvim-lint' }
+
+  local lint = require 'lint'
+  require('lint.linters.checkstyle').config_file = vim.fs.joinpath(vim.fn.stdpath 'config', 'config', 'checkstyle', 'java-indent.xml')
+
+  lint.linters_by_ft = {
+    javascript = { 'eslint_d' },
+    javascriptreact = { 'eslint_d' },
+    typescript = { 'eslint_d' },
+    typescriptreact = { 'eslint_d' },
+    vue = { 'eslint_d' },
+    sh = { 'shellcheck' },
+    bash = { 'shellcheck' },
+    markdown = { 'markdownlint' },
+    java = { 'checkstyle' },
+  }
+
+  local lint_augroup = vim.api.nvim_create_augroup('kickstart-lint', { clear = true })
+  vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWritePost', 'InsertLeave' }, {
+    group = lint_augroup,
+    callback = function(args)
+      if vim.bo[args.buf].modifiable then lint.try_lint() end
+    end,
+  })
+
+  vim.keymap.set('n', '<leader>l', function() lint.try_lint() end, { desc = '[L]int buffer' })
+end
+
+-- ============================================================
+-- SECTION 9: AUTOCOMPLETE & SNIPPETS
 -- blink.cmp and luasnip setup
 -- ============================================================
 do
@@ -891,7 +1030,7 @@ do
 end
 
 -- ============================================================
--- SECTION 9: TREESITTER
+-- SECTION 10: TREESITTER
 -- Parser installation, syntax highlighting, folds, indentation
 -- ============================================================
 do
@@ -953,7 +1092,7 @@ do
 end
 
 -- ============================================================
--- SECTION 10: OPTIONAL EXAMPLES / NEXT STEPS
+-- SECTION 11: OPTIONAL EXAMPLES / NEXT STEPS
 -- kickstart.plugins.* examples
 -- ============================================================
 do

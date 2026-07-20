@@ -28,10 +28,10 @@ Légende du statut :
 
 | Feature | Statut | Notes |
 | --- | --- | --- |
-| LSP | [~] | Kickstart fournit le socle Mason + LSP ; à étendre (Java / Vue / web) |
+| LSP | [x] | Mason + LSP : `jdtls` (JDK 21 via `JDTLS_JAVA_HOME`), `vtsls` + `vue_ls`, HTML/CSS/JSON/YAML/Bash/XML |
 | Autocompletion | [x] | `blink.cmp` + LuaSnip déjà en place |
-| Formatage | [~] | `conform.nvim` présent ; formatters JS/TS/Vue/Java à brancher |
-| Linter | [~] | Exemple `kickstart.plugins.lint` commenté ; eslint / checkstyle à activer |
+| Formatage | [x] | `conform.nvim` : prettier, stylua, shfmt, google-java-format (AOSP) + format on save |
+| Linter | [x] | `nvim-lint` : eslint_d, shellcheck, markdownlint, checkstyle |
 
 **Critère de done P0 :** ouvrir un fichier `.java`, `.vue`, `.ts` et avoir LSP + completion + format + lint utilisables.
 
@@ -78,7 +78,7 @@ Légende du statut :
 
 ## Ordre d’implémentation
 
-1. **Socle langages (P0)** — Java (jdtls) + Vue/TS (vtsls) + HTML/CSS/JSON/YAML/Bash/XML + prettier / eslint / google-java-format / checkstyle
+1. **Socle langages (P0)** — ~~Java (jdtls) + Vue/TS (vtsls) + HTML/CSS/JSON/YAML/Bash/XML + prettier / eslint / google-java-format / checkstyle~~ ✅
 2. **Navigation & Git (P1)** — neo-tree + keymaps gitsigns
 3. **Runners projets (P1)** — npm + Maven (Java / Micronaut)
 4. **Debug & Tests (P2)** — DAP + keymaps `mvn test` (setup auto via Mason)
