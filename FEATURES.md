@@ -46,7 +46,7 @@ Légende du statut :
 | Git | [x] | `gitsigns` + keymaps hunks (`<leader>h…`, `]c`/`[c`) ; LazyGit en P2 |
 | Lancer facilement un projet frontend avec npm | [x] | `<leader>rd/rb/rt/rs` + `:Npm` — terminal split, racine via `package.json` |
 | Lancer facilement un projet backend Java | [x] | `<leader>rc/rp/rj/rg` + `:Maven` — compile / package / spring-boot:run / goals libres |
-| Lancer facilement un projet backend Micronaut | [x] | `<leader>rm` → `mvn mn:run` (Maven only, pas de Gradle) |
+| Lancer facilement un projet backend Micronaut | [x] | `<leader>rm` picker configs / `rM` créer-éditer ; sauvé dans `.nvim/runners.json` (environments + config files + env) |
 
 **Critère de done P1 :** démarrer frontend npm **et** backend Java/Micronaut (Maven) sans quitter Neovim.
 
