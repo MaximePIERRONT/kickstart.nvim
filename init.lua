@@ -384,6 +384,7 @@ do
       { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
+      { '<leader>r', group = '[R]un (npm / Maven)' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
   }
@@ -1109,8 +1110,8 @@ do
 
   -- NOTE: You can add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --
-  --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- require 'custom.plugins'
+  --  Runners projets (npm + Maven / Micronaut) : `lua/custom/plugins/runners.lua`
+  require 'custom.plugins'
 end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
