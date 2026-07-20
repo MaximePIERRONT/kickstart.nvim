@@ -253,14 +253,14 @@ do
   })
 
   vim.api.nvim_create_autocmd('FileType', {
-    desc = 'Use IntelliJ-like Java indentation defaults',
+    desc = 'Match Google Java Format indentation defaults',
     pattern = 'java',
     group = vim.api.nvim_create_augroup('kickstart-java-indent', { clear = true }),
     callback = function()
       vim.bo.expandtab = true
-      vim.bo.tabstop = 4
-      vim.bo.shiftwidth = 4
-      vim.bo.softtabstop = 4
+      vim.bo.tabstop = 2
+      vim.bo.shiftwidth = 2
+      vim.bo.softtabstop = 2
     end,
   })
 end
@@ -902,11 +902,6 @@ do
       sh = { 'shfmt' },
       bash = { 'shfmt' },
       java = { 'google-java-format' },
-    },
-    formatters = {
-      ['google-java-format'] = {
-        prepend_args = { '--aosp' },
-      },
     },
   }
 

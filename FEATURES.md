@@ -30,7 +30,7 @@ Légende du statut :
 | --- | --- | --- |
 | LSP | [x] | Mason + LSP : `jdtls` (JDK 21 via `JDTLS_JAVA_HOME`), `vtsls` + `vue_ls`, HTML/CSS/JSON/YAML/Bash/XML |
 | Autocompletion | [x] | `blink.cmp` + LuaSnip déjà en place |
-| Formatage | [x] | `conform.nvim` : prettier, stylua, shfmt, google-java-format (AOSP) + format on save |
+| Formatage | [x] | `conform.nvim` : prettier (web), stylua, shfmt, **google-java-format** (style Google, pas AOSP) + format on save |
 | Linter | [x] | `nvim-lint` : eslint_d, shellcheck, markdownlint, checkstyle |
 
 **Critère de done P0 :** ouvrir un fichier `.java`, `.vue`, `.ts` et avoir LSP + completion + format + lint utilisables.
