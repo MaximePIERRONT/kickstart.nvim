@@ -12,3 +12,14 @@ spell/
 nvim-pack-lock.json
 
 .DS_Store
+
+# Demo multi-module Maven project build output
+test-project/**/target/
+test-project/**/.nvim/
+# Eclipse / jdtls generated metadata
+test-project/**/.project
+test-project/**/.classpath
+test-project/**/.factorypath
+test-project/**/.settings/
+# Frontend fixture
+fixtures/frontend/node_modules/

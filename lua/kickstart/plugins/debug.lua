@@ -1,10 +1,7 @@
 -- debug.lua
 --
--- Shows how to use the DAP plugin to debug your code.
---
--- Primarily focused on configuring the debugger for Go, but can
--- be extended to other languages as well. That's why it's called
--- kickstart.nvim and not kitchen-sink.nvim ;)
+-- DAP for this kickstart fork: Java (jdtls + java-debug-adapter) and JS/TS
+-- (js-debug-adapter). Go/delve from upstream kickstart is intentionally omitted.
 
 vim.pack.add {
   'https://github.com/mfussenegger/nvim-dap',
@@ -12,10 +9,10 @@ vim.pack.add {
   'https://github.com/nvim-neotest/nvim-nio',
   'https://github.com/mason-org/mason.nvim',
   'https://github.com/jay-babu/mason-nvim-dap.nvim',
-  'https://github.com/leoluz/nvim-dap-go',
+  'https://github.com/mfussenegger/nvim-jdtls',
 }
 
--- Basic debugging keymaps, feel free to change to your liking!
+-- Basic debugging keymaps
 vim.keymap.set('n', '<F5>', function() require('dap').continue() end, { desc = 'Debug: Start/Continue' })
 vim.keymap.set('n', '<F1>', function() require('dap').step_into() end, { desc = 'Debug: Step Into' })
 vim.keymap.set('n', '<F2>', function() require('dap').step_over() end, { desc = 'Debug: Step Over' })
@@ -29,19 +26,18 @@ local dap = require 'dap'
 local dapui = require 'dapui'
 
 require('mason-nvim-dap').setup {
-  -- Makes a best effort to setup the various debuggers with
-  -- reasonable debug configurations
   automatic_installation = true,
-
-  -- You can provide additional configuration to the handlers,
-  -- see mason-nvim-dap README for more information
-  handlers = {},
-
-  -- You'll need to check that you have the required things installed
-  -- online, please don't ask me how to install them :)
+  -- Default handlers for everything except Java: nvim-jdtls owns the `java` DAP adapter
+  -- once java-debug-adapter bundles are loaded into jdtls (see init.lua).
+  handlers = {
+    function(config) require('mason-nvim-dap').default_setup(config) end,
+    javadbg = function() end,
+    javatest = function() end,
+  },
+  -- Adapter source names (not Mason package names): see mason-nvim-dap mappings.
   ensure_installed = {
-    -- Update this to ensure that you have the debuggers for the langs you want
-    'delve',
+    'js', -- → js-debug-adapter
+    'javadbg', -- → java-debug-adapter (install only; handler above is a no-op)
   },
 }
 
@@ -50,8 +46,6 @@ require('mason-nvim-dap').setup {
 ---@diagnostic disable-next-line: missing-fields
 dapui.setup {
   -- Set icons to characters that are more likely to work in every terminal.
-  --    Feel free to remove or use ones that you like more! :)
-  --    Don't feel like these are good choices.
   icons = { expanded = '▾', collapsed = '▸', current_frame = '*' },
   ---@diagnostic disable-next-line: missing-fields
   controls = {
@@ -69,27 +63,48 @@ dapui.setup {
   },
 }
 
--- Change breakpoint icons
--- vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
--- vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
--- local breakpoint_icons = vim.g.have_nerd_font
---     and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
---   or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
--- for type, icon in pairs(breakpoint_icons) do
---   local tp = 'Dap' .. type
---   local hl = (type == 'Stopped') and 'DapStop' or 'DapBreak'
---   vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
--- end
-
 dap.listeners.after.event_initialized['dapui_config'] = dapui.open
 dap.listeners.before.event_terminated['dapui_config'] = dapui.close
 dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
--- Install golang specific config
-require('dap-go').setup {
-  delve = {
-    -- On Windows delve must be run attached or it crashes.
-    -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
-    detached = vim.fn.has 'win32' == 0,
-  },
-}
+-- JS / TS: pwa-node via mason js-debug-adapter (handlers above usually cover this;
+-- keep explicit configs so F5 works in a typical Node project without launch.json).
+for _, language in ipairs { 'typescript', 'javascript', 'typescriptreact', 'javascriptreact' } do
+  dap.configurations[language] = {
+    {
+      type = 'pwa-node',
+      request = 'launch',
+      name = 'Launch current file',
+      program = '${file}',
+      cwd = '${workspaceFolder}',
+    },
+    {
+      type = 'pwa-node',
+      request = 'attach',
+      name = 'Attach',
+      processId = require('dap.utils').pick_process,
+      cwd = '${workspaceFolder}',
+    },
+  }
+end
+
+---Wire nvim-jdtls DAP helpers once java-debug-adapter bundles are loaded in jdtls.
+local function setup_java_dap()
+  local ok, jdtls = pcall(require, 'jdtls')
+  if not ok then return end
+  jdtls.setup_dap { hotcodereplace = 'auto' }
+  pcall(function() require('jdtls.dap').setup_dap_main_class_configs() end)
+end
+
+vim.api.nvim_create_autocmd('LspAttach', {
+  group = vim.api.nvim_create_augroup('kickstart-java-dap', { clear = true }),
+  callback = function(event)
+    local client = vim.lsp.get_client_by_id(event.data.client_id)
+    if client and client.name == 'jdtls' then setup_java_dap() end
+  end,
+})
+
+-- If jdtls already attached when this module loads, wire DAP immediately.
+for _, client in ipairs(vim.lsp.get_clients { name = 'jdtls' }) do
+  if client then setup_java_dap() end
+end

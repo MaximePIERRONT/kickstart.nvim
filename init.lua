@@ -385,6 +385,7 @@ do
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
       { '<leader>r', group = '[R]un (npm / Maven)' },
+      { '<leader>j', group = '[J]ava test (Maven)' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
   }
@@ -798,10 +799,23 @@ do
     },
   }
 
+  ---Collect java-debug-adapter jars so jdtls can start DAP sessions (Mason path).
+  ---@return string[]
+  local function java_debug_bundles()
+    local pattern =
+      vim.fs.joinpath(vim.fn.stdpath 'data', 'mason', 'packages', 'java-debug-adapter', 'extension', 'server', 'com.microsoft.java.debug.plugin-*.jar')
+    return vim.fn.glob(pattern, true, true)
+  end
+
   local jdtls_java, jdtls_error = jdtls_java_executable()
   local jdtls_java_version = java_major_version(jdtls_java)
   if jdtls_java_version and jdtls_java_version >= 21 then
-    servers.jdtls = { cmd = { 'jdtls', '--java-executable', jdtls_java } }
+    servers.jdtls = {
+      cmd = { 'jdtls', '--java-executable', jdtls_java },
+      init_options = {
+        bundles = java_debug_bundles(),
+      },
+    }
   else
     if jdtls_java and jdtls_java_version then jdtls_error = 'JDTLS_JAVA_HOME must point to a JDK 21+; current version is Java ' .. jdtls_java_version .. '.' end
     local jdtls_error_shown = false
@@ -843,6 +857,9 @@ do
     'shellcheck',
     'markdownlint',
     'checkstyle',
+    -- P2 debug adapters (also ensured by mason-nvim-dap; listed here for cold start)
+    'java-debug-adapter',
+    'js-debug-adapter',
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -1101,7 +1118,7 @@ do
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug'
+  require 'kickstart.plugins.debug' -- DAP: Java + JS/TS (roadmap P2)
   -- require 'kickstart.plugins.indent_line'
   -- require 'kickstart.plugins.lint'
   -- require 'kickstart.plugins.autopairs'
@@ -1111,6 +1128,7 @@ do
   -- NOTE: You can add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --
   --  Runners projets (npm + Maven / Micronaut) : `lua/custom/plugins/runners.lua`
+  --  Maven tests (class / method / all) : `lua/custom/plugins/maven-tests.lua`
   require 'custom.plugins'
 end
 

@@ -1,0 +1,5 @@
+micronaut:
+  application:
+    name: kickstart-demo
+  server:
+    port: 8080
