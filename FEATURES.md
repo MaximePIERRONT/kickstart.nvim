@@ -56,8 +56,8 @@ Légende du statut :
 
 | Feature | Statut | Notes |
 | --- | --- | --- |
-| Debug | [x] | `kickstart.plugins.debug` : DAP UI + **js-debug-adapter** + **java-debug-adapter** (bundles jdtls) ; F5/F1–F3/F7, `<leader>b`/`B` |
-| Tests | [x] | Keymaps Maven minimaux : `<leader>jt` classe / `jm` méthode / `ja` all + `:MavenTest` (pas de neotest) |
+| Debug | [x] | `kickstart.plugins.debug` : DAP UI + **js-debug-adapter** + **java-debug-adapter** (bundles jdtls) ; F5/F1–F3/F7, `<leader>b`/`B` ; smoke CI `test-dap-smoke.lua` |
+| Tests | [x] | Keymaps Maven multi-module : `<leader>jt` / `jm` / `ja` + `:MavenTest` → `mvn -pl :<module> -am` (pas de neotest) ; CI dans `.github/workflows/java-dap-ci.yml` |
 | Snippets | [~] | LuaSnip OK ; `friendly-snippets` encore commenté |
 | LazyGit dans l’interface Neovim | [ ] | Terminal flottant / plugin LazyGit |
 | LazyDocker dans l’interface Neovim | [ ] | Idem pour Docker |
