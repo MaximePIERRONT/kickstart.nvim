@@ -30,6 +30,9 @@ local expected_maps = {
   { '<F2>', 'dap step over' },
   { '<F3>', 'dap step out' },
   { '<F7>', 'dapui toggle' },
+  -- P2 LazyGit / LazyDocker
+  { '<leader>gg', 'lazygit' },
+  { '<leader>ld', 'lazydocker' },
 }
 
 for _, item in ipairs(expected_maps) do
@@ -39,7 +42,7 @@ for _, item in ipairs(expected_maps) do
   harness.ok('keymap ' .. item[1])
 end
 
-local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'Neotree', 'Telescope' }
+local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker' }
 for _, name in ipairs(commands) do
   if not harness.command_exists(name) then harness.fail('missing command :' .. name) end
   harness.ok('command :' .. name)

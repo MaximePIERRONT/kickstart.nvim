@@ -386,6 +386,8 @@ do
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
       { '<leader>r', group = '[R]un (npm / Maven)' },
       { '<leader>j', group = '[J]ava test (Maven)' },
+      { '<leader>g', group = '[G]it TUI (LazyGit)' },
+      { '<leader>l', group = '[L]azyDocker' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
   }
@@ -704,8 +706,18 @@ do
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
+  -- Auto-install JDK 21+ into stdpath data when JDTLS_JAVA_HOME / JAVA_HOME missing
+  -- (same pattern as Mason for jdtls / formatters — see custom.ensure_tool).
+  local ensure_tool = require 'custom.ensure_tool'
+  do
+    local ok_jdk, jdk_home_or_err = ensure_tool.ensure_jdk21()
+    if not ok_jdk then
+      vim.schedule(function() vim.notify('JDK auto-install: ' .. tostring(jdk_home_or_err), vim.log.levels.WARN) end)
+    end
+  end
+
   local function jdtls_java_executable()
-    if not vim.env.JDTLS_JAVA_HOME or vim.env.JDTLS_JAVA_HOME == '' then return nil, 'JDTLS_JAVA_HOME must point to a JDK 21+.' end
+    if not vim.env.JDTLS_JAVA_HOME or vim.env.JDTLS_JAVA_HOME == '' then return nil, 'JDTLS_JAVA_HOME must point to a JDK 21+ (auto-install failed).' end
 
     local executable = vim.fs.joinpath(vim.env.JDTLS_JAVA_HOME, 'bin', 'java')
     if not vim.uv.fs_stat(executable) then return nil, 'JDTLS_JAVA_HOME/bin/java does not exist.' end
@@ -1129,6 +1141,7 @@ do
   --
   --  Runners projets (npm + Maven / Micronaut) : `lua/custom/plugins/runners.lua`
   --  Maven tests (class / method / all) : `lua/custom/plugins/maven-tests.lua`
+  --  LazyGit / LazyDocker (+ ensure_tool auto-install) : `lua/custom/plugins/lazy-tui.lua`
   require 'custom.plugins'
 end
 

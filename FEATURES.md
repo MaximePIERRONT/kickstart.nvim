@@ -59,10 +59,26 @@ Légende du statut :
 | Debug | [x] | `kickstart.plugins.debug` : DAP UI + **js-debug-adapter** + **java-debug-adapter** (bundles jdtls) ; F5/F1–F3/F7, `<leader>b`/`B` ; smoke CI `test-dap-smoke.lua` |
 | Tests | [x] | Keymaps Maven multi-module : `<leader>jt` / `jm` / `ja` + `:MavenTest` → `mvn -pl :<module> -am` (pas de neotest) ; CI dans `.github/workflows/java-dap-ci.yml` |
 | Snippets | [~] | LuaSnip OK ; `friendly-snippets` encore commenté |
-| LazyGit dans l’interface Neovim | [ ] | Terminal flottant / plugin LazyGit |
-| LazyDocker dans l’interface Neovim | [ ] | Idem pour Docker |
+| LazyGit dans l’interface Neovim | [x] | `<leader>gg` / `:LazyGit` — terminal flottant ; **auto-install** binaire via `custom.ensure_tool` (GitHub releases) |
+| LazyDocker dans l’interface Neovim | [x] | `<leader>ld` / `:LazyDocker` — idem auto-install |
 
-**Critère de done P2 :** debugger + tests Maven ✅ ; LazyGit / LazyDocker encore à faire.
+**Critère de done P2 :** debugger + tests Maven + LazyGit / LazyDocker ✅ (snippets optionnels).
+
+---
+
+## Auto-install des dépendances
+
+Quand un outil manque, la config le télécharge dans `stdpath('data')/kickstart-tools` (préfixe `$PATH`) :
+
+| Outil | Déclencheur | Source |
+| --- | --- | --- |
+| **JDK 21+** (jdtls) | démarrage LSP si `JDTLS_JAVA_HOME` / `JAVA_HOME` absents ou < 21 | Eclipse Temurin (Adoptium) |
+| **Maven** (`mvn`) | premier `:Maven` / test Java / runner | Apache Maven binary |
+| **lazygit** | `<leader>gg` / `:LazyGit` (+ warm VimEnter) | GitHub releases |
+| **lazydocker** | `<leader>ld` / `:LazyDocker` (+ warm VimEnter) | GitHub releases |
+| LSP / formatters / DAP | Mason (`mason-tool-installer`) | Mason registry |
+
+Module : `lua/custom/ensure_tool.lua`.
 
 ---
 
@@ -82,10 +98,10 @@ Suite CI : `.github/workflows/features-ci.yml`
 
 | Couche | Ce qui est vérifié |
 | --- | --- |
-| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) |
+| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs, PATH) |
 | **Unit/intégration (Java)** | `test-project` multi-module — domain / api / infrastructure (Micronaut) via `mvn verify` |
-| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes, Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
-| **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java (`startDebugSession` + main classes) |
+| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
+| **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java, **auto-install LazyGit/LazyDocker** |
 
 Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 
@@ -93,7 +109,7 @@ Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 2. **Navigation & Git (P1)** — ~~neo-tree + keymaps gitsigns~~ ✅
 3. **Runners projets (P1)** — ~~npm + Maven (Java / Micronaut)~~ ✅
 4. **Debug & Tests (P2)** — ~~DAP + keymaps `mvn test` (setup auto via Mason)~~ ✅
-5. **LazyGit / LazyDocker (P2)**
+5. **LazyGit / LazyDocker (P2)** — ~~TUI flottant + auto-install binaires (+ JDK / Maven on-demand)~~ ✅
 6. **Sessions (P3)** — seulement si le reste est stable
 
 ---
