@@ -5,7 +5,8 @@
 --   jm  test [m]ethod under cursor    → mvn test -Dtest=com.example.FooTest#bar
 --   ja  test [a]ll in module          → mvn test
 --
--- Requires `mvn` on $PATH. Uses the nearest pom.xml (multi-module friendly).
+-- Requires `mvn` on $PATH (auto-installé via custom.ensure_tool si absent).
+-- Uses the nearest pom.xml (multi-module friendly).
 
 local M = {}
 
@@ -28,10 +29,17 @@ end
 ---@param start_path string|nil
 ---@return string|nil
 function M.maven_root(start_path)
-  local root = M.find_root({ 'pom.xml' }, start_path)
-  if not root then return nil end
-  if vim.fn.executable 'mvn' ~= 1 then return nil end
-  return root
+  return M.find_root({ 'pom.xml' }, start_path)
+end
+
+---Ensure `mvn` is on PATH (auto-download into kickstart-tools if missing).
+---@return boolean
+function M.ensure_mvn()
+  if vim.fn.executable 'mvn' == 1 then return true end
+  local ok_ensure, ensure = pcall(require, 'custom.ensure_tool')
+  if not ok_ensure then return false end
+  local ok = ensure.ensure_maven()
+  return ok and vim.fn.executable 'mvn' == 1
 end
 
 ---Walk up from a module pom directory to the top-most aggregator pom (reactor).
@@ -68,6 +76,10 @@ end
 ---@param cwd string
 ---@param title string
 local function run_in_terminal(cmd, cwd, title)
+  if not M.ensure_mvn() then
+    vim.notify('mvn introuvable (auto-install échouée)', vim.log.levels.ERROR)
+    return
+  end
   vim.notify(string.format('%s → %s', title, table.concat(cmd, ' ')), vim.log.levels.INFO)
   -- Headless CI / -es scripts: run synchronously instead of opening a terminal UI.
   if vim.fn.has 'nvim' == 1 and #vim.api.nvim_list_uis() == 0 then

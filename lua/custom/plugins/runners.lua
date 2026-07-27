@@ -188,8 +188,12 @@ local function maven_root()
     return nil
   end
   if not has_exe 'mvn' then
-    vim.notify('mvn introuvable dans $PATH', vim.log.levels.ERROR)
-    return nil
+    local ensure = require 'custom.ensure_tool'
+    local ok, path_or_err = ensure.ensure_maven()
+    if not ok then
+      vim.notify('mvn introuvable: ' .. tostring(path_or_err), vim.log.levels.ERROR)
+      return nil
+    end
   end
   return root, marker
 end
