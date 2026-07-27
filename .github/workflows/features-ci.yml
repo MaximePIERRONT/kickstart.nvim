@@ -1,0 +1,182 @@
+name: Features — unit / integration / e2e
+
+on:
+  pull_request:
+  push:
+    branches: [master, cursor/from-upstream-master-c628, cursor/debug-tests-p2-7edb]
+
+concurrency:
+  group: features-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Application / fixture tests (Java multi-module)
+  # ---------------------------------------------------------------------------
+  java-app-tests:
+    name: Java unit + integration (Maven)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: mvn clean verify
+        working-directory: test-project
+        run: mvn -B clean verify
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: test-project/*/target/surefire-reports/**
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Neovim unit tests (no full config / no Mason)
+  # ---------------------------------------------------------------------------
+  nvim-unit:
+    name: Neovim unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Neovim
+        run: |
+          curl -fsSL -o /tmp/nvim.tar.gz https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
+          sudo tar -C /opt -xzf /tmp/nvim.tar.gz
+          sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+      - name: Unit — maven-tests
+        run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_maven_tests.lua"
+      - name: Unit — runners
+        run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_runners.lua"
+
+  # ---------------------------------------------------------------------------
+  # Shared Neovim bootstrap used by integration + e2e
+  # ---------------------------------------------------------------------------
+  nvim-integration:
+    name: Neovim integration (P0/P1/P2 wiring)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: [java-app-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        id: setup-java
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y -qq git curl unzip ripgrep build-essential python3
+      - name: Install Neovim
+        run: |
+          curl -fsSL -o /tmp/nvim.tar.gz https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
+          sudo tar -C /opt -xzf /tmp/nvim.tar.gz
+          sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+      - name: Point Neovim config at repo
+        run: |
+          mkdir -p "$HOME/.config"
+          ln -sfn "$GITHUB_WORKSPACE" "$HOME/.config/nvim"
+      - name: Bootstrap plugins + Mason tools
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          set -euo pipefail
+          timeout 300s nvim --headless "+lua vim.notify('boot')" +qa || true
+          nvim --headless \
+            "+lua require('mason').setup()" \
+            "+lua require('mason-tool-installer').setup({ ensure_installed = { 'jdtls', 'java-debug-adapter', 'js-debug-adapter', 'google-java-format', 'prettier', 'eslint_d', 'stylua', 'checkstyle', 'vue-language-server', 'vtsls' }, run_on_start = false })" \
+            "+MasonToolsInstallSync" \
+            +qa
+          echo "$HOME/.local/share/nvim/mason/bin" >> "$GITHUB_PATH"
+      - name: Integration — config boot
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
+          nvim --headless -c "luafile .github/workflows/tests/integration/test_config_boot.lua"
+      - name: Integration — keymaps & commands
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
+          nvim --headless -c "luafile .github/workflows/tests/integration/test_plugins_keymaps.lua"
+      - name: Integration — P0 LSP/format/lint
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
+          nvim --headless -c "luafile .github/workflows/tests/integration/test_p0_lsp_format_lint.lua"
+      - name: Integration — P1 nav/git
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
+          nvim --headless -c "luafile .github/workflows/tests/integration/test_p1_nav_git.lua"
+
+  nvim-e2e:
+    name: Neovim e2e (runners / maven-tests / DAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [java-app-tests, nvim-unit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        id: setup-java
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y -qq git curl unzip ripgrep build-essential python3
+      - name: Install Neovim
+        run: |
+          curl -fsSL -o /tmp/nvim.tar.gz https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
+          sudo tar -C /opt -xzf /tmp/nvim.tar.gz
+          sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+      - name: Point Neovim config at repo
+        run: |
+          mkdir -p "$HOME/.config"
+          ln -sfn "$GITHUB_WORKSPACE" "$HOME/.config/nvim"
+      - name: Warm Maven reactor
+        working-directory: test-project
+        run: mvn -B -DskipTests install
+      - name: Bootstrap plugins + Mason tools
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          set -euo pipefail
+          timeout 300s nvim --headless "+lua vim.notify('boot')" +qa || true
+          nvim --headless \
+            "+lua require('mason').setup()" \
+            "+lua require('mason-tool-installer').setup({ ensure_installed = { 'jdtls', 'java-debug-adapter', 'js-debug-adapter', 'google-java-format', 'prettier', 'eslint_d', 'stylua', 'checkstyle' }, run_on_start = false })" \
+            "+MasonToolsInstallSync" \
+            +qa
+          echo "$HOME/.local/share/nvim/mason/bin" >> "$GITHUB_PATH"
+      - name: E2E — runners (npm / Maven / Micronaut configs)
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
+          # Full config so user commands exist; module also loadable via rtp.
+          nvim --headless -c "luafile .github/workflows/tests/e2e/test_runners_e2e.lua"
+      - name: E2E — Maven test keymaps multi-module
+        run: |
+          nvim --headless -u NONE -c "luafile .github/workflows/tests/e2e/test_maven_tests_e2e.lua"
+      - name: E2E — DAP Java debug session
+        env:
+          JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: |
+          export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
+          nvim --headless -c "luafile .github/workflows/tests/e2e/test_dap_e2e.lua"

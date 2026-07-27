@@ -76,7 +76,18 @@ Légende du statut :
 
 ---
 
-## Ordre d’implémentation
+## Couverture de tests
+
+Suite CI : `.github/workflows/features-ci.yml`
+
+| Couche | Ce qui est vérifié |
+| --- | --- |
+| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) |
+| **Unit/intégration (Java)** | `test-project` multi-module — domain / api / infrastructure (Micronaut) via `mvn verify` |
+| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes, Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
+| **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java (`startDebugSession` + main classes) |
+
+Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 
 1. **Socle langages (P0)** — ~~Java (jdtls) + Vue/TS (vtsls) + HTML/CSS/JSON/YAML/Bash/XML + prettier / eslint / google-java-format / checkstyle~~ ✅
 2. **Navigation & Git (P1)** — ~~neo-tree + keymaps gitsigns~~ ✅

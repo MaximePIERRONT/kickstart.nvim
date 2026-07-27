@@ -86,6 +86,19 @@ local function run_in_terminal(cmd, cwd, title, env)
   local cmd_str = type(cmd) == 'table' and table.concat(cmd, ' ') or cmd
   vim.notify(string.format('%s → %s', title, cmd_str), vim.log.levels.INFO)
 
+  -- Headless CI: run synchronously (no terminal UI).
+  if #vim.api.nvim_list_uis() == 0 then
+    local opts = { cwd = cwd, env = merge_env(env), text = true }
+    local result
+    if type(cmd) == 'table' then
+      result = vim.system(cmd, opts):wait()
+    else
+      result = vim.system({ vim.o.shell, '-c', cmd }, opts):wait()
+    end
+    if result.code ~= 0 then error(string.format('%s failed (%s):\n%s%s', title, tostring(result.code), result.stdout or '', result.stderr or '')) end
+    return
+  end
+
   vim.cmd('botright ' .. TERM_HEIGHT .. 'split')
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(0, buf)
@@ -341,17 +354,23 @@ end
 
 ---@param root string
 ---@param cfg RunnerConfig
-local function run_micronaut_config(root, cfg)
+---@return string[] cmd
+---@return table<string, string> env
+local function build_micronaut_cmd(root, cfg)
   local env, mvn_args = build_micronaut_env_and_args(root, cfg)
   local goals = cfg.goals
   if type(goals) ~= 'table' or #goals == 0 then goals = { 'mn:run' } end
-
   local cmd = { 'mvn' }
   vim.list_extend(cmd, mvn_args)
   vim.list_extend(cmd, goals)
+  return cmd, env
+end
 
-  local title = 'micronaut:' .. cfg.name
-  run_in_terminal(cmd, root, title, env)
+---@param root string
+---@param cfg RunnerConfig
+local function run_micronaut_config(root, cfg)
+  local cmd, env = build_micronaut_cmd(root, cfg)
+  run_in_terminal(cmd, root, 'micronaut:' .. cfg.name, env)
 end
 
 ---@param root string
@@ -635,3 +654,25 @@ end, {
 })
 
 vim.api.nvim_create_user_command('RunConfig', function() micronaut_new_or_edit() end, { desc = 'Create / edit Micronaut run config' })
+
+-- Exported for unit / integration / e2e tests.
+return {
+  find_root = find_root,
+  has_exe = has_exe,
+  merge_env = merge_env,
+  npm_root = npm_root,
+  maven_root = maven_root,
+  read_npm_scripts = read_npm_scripts,
+  pom_has = pom_has,
+  runners_path = runners_path,
+  load_runners_file = load_runners_file,
+  save_runners_file = save_runners_file,
+  parse_env_file = parse_env_file,
+  parse_env_inline = parse_env_inline,
+  build_micronaut_env_and_args = build_micronaut_env_and_args,
+  build_micronaut_cmd = build_micronaut_cmd,
+  run_in_terminal = run_in_terminal,
+  maven_run = maven_run,
+  npm_run = npm_run,
+  npm_test = npm_test,
+}
