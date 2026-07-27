@@ -42,7 +42,7 @@ for _, item in ipairs(expected_maps) do
   harness.ok('keymap ' .. item[1])
 end
 
-local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker' }
+local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'KickstartEnsureTools' }
 for _, name in ipairs(commands) do
   if not harness.command_exists(name) then harness.fail('missing command :' .. name) end
   harness.ok('command :' .. name)

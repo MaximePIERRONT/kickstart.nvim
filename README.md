@@ -12,6 +12,44 @@ A starting point for Neovim that is:
 
 ## Installation
 
+### Install facile — Ubuntu / Arch (recommandé)
+
+Sur Ubuntu ou Arch, seuls quelques paquets système sont nécessaires. **Node, JDK 21, Maven, ripgrep, fd, LazyGit, LazyDocker** et les outils LSP/format/DAP s’installent **au démarrage de Neovim** (ou via Mason / `:KickstartEnsureTools`).
+
+<details><summary>Ubuntu</summary>
+
+```sh
+sudo apt update
+sudo apt install -y git curl unzip tar gzip xz-utils build-essential xclip
+
+# Neovim ≥ 0.12 (PPA ou binaire officiel si le paquet distro est trop vieux)
+sudo add-apt-repository ppa:neovim-ppa/unstable -y
+sudo apt update && sudo apt install -y neovim
+# Alternative sans PPA :
+# curl -fsSL -o /tmp/nvim.tar.gz https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+# sudo tar -C /opt -xzf /tmp/nvim.tar.gz && sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+
+git clone https://github.com/MaximePIERRONT/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+nvim
+# Premier lancement : télécharge plugins + Mason + outils (peut prendre quelques minutes)
+```
+
+</details>
+
+<details><summary>Arch Linux</summary>
+
+```sh
+sudo pacman -S --needed git curl unzip tar gzip xz base-devel neovim xclip
+
+git clone https://github.com/MaximePIERRONT/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+nvim
+# Premier lancement : télécharge plugins + Mason + outils (peut prendre quelques minutes)
+```
+
+</details>
+
+Vérifier ensuite : `:checkhealth kickstart` et `:Mason`. Relancer un ensure complet : `:KickstartEnsureTools`.
+
 ### Install Neovim
 
 Kickstart.nvim targets *only* the latest
@@ -28,19 +66,21 @@ alternative [installation methods below](#alternative-neovim-installation-method
 
 ### Install External Dependencies
 
-External Requirements:
-- Basic utils: `git`, `make`, `unzip`, C Compiler (`gcc`)
-- [ripgrep](https://github.com/BurntSushi/ripgrep#installation),
-  [fd-find](https://github.com/sharkdp/fd#installation)
-- [tree-sitter CLI](https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md#installation)
-- Clipboard tool (xclip/xsel/win32yank or other depending on the platform)
+**Minimal (Ubuntu / Arch)** — see [Install facile](#install-facile--ubuntu--arch-recommandé) above.
+
+Everything else is auto-installed:
+
+- **At Neovim startup (sync, before Mason):** Node.js LTS, JDK 21, ripgrep, fd → `~/.local/share/nvim/kickstart-tools`
+- **At startup (Mason):** LSP servers, formatters, linters, DAP adapters, `tree-sitter-cli`
+- **Warm / on demand:** Maven, LazyGit, LazyDocker (`:KickstartEnsureTools` forces all)
+
+Still useful from the OS if you prefer system packages instead of auto-download:
+
+- Basic utils: `git`, `make`, `unzip`, C Compiler (`gcc`), `curl`, `tar`
+- Clipboard tool (`xclip` / `xsel`)
 - A [Nerd Font](https://www.nerdfonts.com/): optional, provides various icons
   - if you have it set `vim.g.have_nerd_font` in `init.lua` to true
 - Emoji fonts (Ubuntu only, and only if you want emoji!) `sudo apt install fonts-noto-color-emoji`
-- Language Setup:
-  - If you want to write Typescript, you need `npm`
-  - If you want to write Golang, you will need `go`
-  - etc.
 
 > [!NOTE]
 > See [Install Recipes](#Install-Recipes) for additional Windows and Linux specific notes
@@ -230,13 +270,16 @@ sudo apt install make gcc ripgrep fd-find tree-sitter-cli unzip git xclip neovim
 </details>
 
 #### Linux Install
-<details><summary>Ubuntu Install Steps</summary>
+<details><summary>Ubuntu Install Steps (minimal — auto-install rest)</summary>
 
 ```
-sudo add-apt-repository ppa:neovim-ppa/unstable -y
 sudo apt update
-sudo apt install make gcc ripgrep fd-find tree-sitter-cli unzip git xclip neovim
+sudo apt install -y git curl unzip tar gzip xz-utils build-essential xclip
+sudo add-apt-repository ppa:neovim-ppa/unstable -y
+sudo apt update && sudo apt install -y neovim
 ```
+
+Node, JDK, Maven, ripgrep, fd, LazyGit, LazyDocker + Mason tools install on first `nvim`.
 </details>
 <details><summary>Debian Install Steps</summary>
 
@@ -262,11 +305,13 @@ sudo dnf install -y gcc make git ripgrep fd-find tree-sitter-cli unzip neovim
 ```
 </details>
 
-<details><summary>Arch Install Steps</summary>
+<details><summary>Arch Install Steps (minimal — auto-install rest)</summary>
 
 ```
-sudo pacman -S --noconfirm --needed gcc make git ripgrep fd tree-sitter-cli unzip neovim
+sudo pacman -S --noconfirm --needed git curl unzip tar gzip xz base-devel neovim xclip
 ```
+
+Node, JDK, Maven, ripgrep, fd, LazyGit, LazyDocker + Mason tools install on first `nvim`.
 </details>
 
 ### Alternative neovim installation methods

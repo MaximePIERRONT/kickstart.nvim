@@ -706,14 +706,14 @@ do
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
-  -- Auto-install JDK 21+ into stdpath data when JDTLS_JAVA_HOME / JAVA_HOME missing
-  -- (same pattern as Mason for jdtls / formatters — see custom.ensure_tool).
+  -- Auto-install Node.js + JDK 21 (+ ripgrep / fd) into stdpath data when missing.
+  -- Same idea as Mason for LSPs / formatters — see custom.ensure_tool.
+  -- Node must be available before Mason installs JS-based packages (vtsls, prettier, …).
   local ensure_tool = require 'custom.ensure_tool'
-  do
-    local ok_jdk, jdk_home_or_err = ensure_tool.ensure_jdk21()
-    if not ok_jdk then
-      vim.schedule(function() vim.notify('JDK auto-install: ' .. tostring(jdk_home_or_err), vim.log.levels.WARN) end)
-    end
+  if vim.g.kickstart_skip_auto_ensure then
+    ensure_tool.prepend_path()
+  else
+    ensure_tool.ensure_startup_sync()
   end
 
   local function jdtls_java_executable()
@@ -869,6 +869,7 @@ do
     'shellcheck',
     'markdownlint',
     'checkstyle',
+    'tree-sitter-cli',
     -- P2 debug adapters (also ensured by mason-nvim-dap; listed here for cold start)
     'java-debug-adapter',
     'js-debug-adapter',

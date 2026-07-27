@@ -97,11 +97,4 @@ vim.api.nvim_create_user_command('LazyDocker', function() M.open_lazydocker() en
 vim.keymap.set('n', '<leader>gg', function() M.open_lazygit() end, { desc = 'Open Lazy[G]it', silent = true })
 vim.keymap.set('n', '<leader>ld', function() M.open_lazydocker() end, { desc = 'Open [L]azy[D]ocker', silent = true })
 
--- Warm install in background after UI is ready (non-blocking).
-vim.api.nvim_create_autocmd('VimEnter', {
-  group = vim.api.nvim_create_augroup('kickstart-lazy-tui-ensure', { clear = true }),
-  once = true,
-  callback = function() ensure.ensure_common_async() end,
-})
-
 return M
