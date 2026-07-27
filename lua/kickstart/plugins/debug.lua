@@ -25,8 +25,11 @@ vim.keymap.set('n', '<F7>', function() require('dapui').toggle() end, { desc = '
 local dap = require 'dap'
 local dapui = require 'dapui'
 
+-- Adapters are installed by mason-tool-installer in init.lua (java-debug-adapter,
+-- js-debug-adapter). Do NOT also ensure_installed here — dual install on startup
+-- races Mason ("Package is already installing") and flakes CI.
 require('mason-nvim-dap').setup {
-  automatic_installation = true,
+  automatic_installation = false,
   -- Default handlers for everything except Java: nvim-jdtls owns the `java` DAP adapter
   -- once java-debug-adapter bundles are loaded into jdtls (see init.lua).
   handlers = {
@@ -34,12 +37,24 @@ require('mason-nvim-dap').setup {
     javadbg = function() end,
     javatest = function() end,
   },
-  -- Adapter source names (not Mason package names): see mason-nvim-dap mappings.
-  ensure_installed = {
-    'js', -- → js-debug-adapter
-    'javadbg', -- → java-debug-adapter (install only; handler above is a no-op)
-  },
+  ensure_installed = {},
 }
+
+-- Wire js-debug-adapter (pwa-node) when the Mason package is present.
+do
+  local dap_server = vim.fs.joinpath(vim.fn.stdpath 'data', 'mason', 'packages', 'js-debug-adapter', 'js-debug', 'src', 'dapDebugServer.js')
+  if vim.uv.fs_stat(dap_server) then
+    dap.adapters['pwa-node'] = {
+      type = 'server',
+      host = 'localhost',
+      port = '${port}',
+      executable = {
+        command = 'node',
+        args = { dap_server, '${port}' },
+      },
+    }
+  end
+end
 
 -- Dap UI setup
 -- For more information, see |:help nvim-dap-ui|

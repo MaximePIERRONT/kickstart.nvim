@@ -90,12 +90,20 @@ jobs:
           JDTLS_JAVA_HOME: ${{ steps.setup-java.outputs.path }}
         run: |
           set -euo pipefail
-          timeout 300s nvim --headless "+lua vim.notify('boot')" +qa || true
-          nvim --headless \
+          # Warm vim.pack plugins only — skip mason ensure to avoid aborted mid-install.
+          timeout 300s nvim --headless --cmd "lua vim.g.kickstart_skip_auto_ensure = true" \
+            "+lua vim.notify('boot')" +qa || true
+          # Single owner for Mason package install (no mason-nvim-dap race).
+          nvim --headless --cmd "lua vim.g.kickstart_skip_auto_ensure = true" \
             "+lua require('mason').setup()" \
             "+lua require('mason-tool-installer').setup({ ensure_installed = { 'jdtls', 'java-debug-adapter', 'js-debug-adapter', 'google-java-format', 'prettier', 'eslint_d', 'stylua', 'checkstyle', 'vue-language-server', 'vtsls' }, run_on_start = false })" \
             "+MasonToolsInstallSync" \
             +qa
+          # Fail fast if a critical DAP package is missing after sync.
+          for pkg in jdtls java-debug-adapter js-debug-adapter; do
+            test -d "$HOME/.local/share/nvim/mason/packages/$pkg" \
+              || { echo "missing mason package: $pkg"; exit 1; }
+          done
           echo "$HOME/.local/share/nvim/mason/bin" >> "$GITHUB_PATH"
       - name: Integration — config boot
         env:

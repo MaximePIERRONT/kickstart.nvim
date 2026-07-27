@@ -874,7 +874,12 @@ do
     'js-debug-adapter',
   })
 
-  require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+  require('mason-tool-installer').setup {
+    ensure_installed = ensure_installed,
+    -- CI bootstrap sets vim.g.kickstart_skip_auto_ensure to avoid racing an
+    -- explicit :MasonToolsInstallSync in the same Neovim process.
+    run_on_start = not vim.g.kickstart_skip_auto_ensure,
+  }
 
   for name, server in pairs(servers) do
     vim.lsp.config(name, server)
