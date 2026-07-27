@@ -1,5 +1,6 @@
 -- Auto-install missing CLI / runtime deps into stdpath('data')/kickstart-tools.
--- Used for LazyGit, LazyDocker, JDK 21 (jdtls), and Maven — same idea as Mason for LSPs.
+-- Used for Node.js, ripgrep, fd, LazyGit, LazyDocker, JDK 21 (jdtls), and Maven —
+-- same idea as Mason for LSPs. Designed so Ubuntu/Arch only need a few OS packages.
 
 local M = {}
 
@@ -15,14 +16,25 @@ function M.bin_dir()
   return vim.fs.joinpath(M.tools_root(), 'bin')
 end
 
----Prepend kickstart-tools/bin to PATH (idempotent).
+---Prepend a directory to PATH if not already present (idempotent).
+---@param dir string
+local function prepend_dir(dir)
+  if not dir or dir == '' then return end
+  if not vim.uv.fs_stat(dir) then return end
+  local path = vim.env.PATH or ''
+  local needle = dir:gsub('(%W)', '%%%1')
+  if not path:find(needle, 1, false) then vim.env.PATH = dir .. ':' .. path end
+end
+
+---Prepend managed tool bin dirs to PATH (idempotent).
 function M.prepend_path()
   local bin = M.bin_dir()
   vim.fn.mkdir(bin, 'p')
-  local path = vim.env.PATH or ''
-  -- Escape magic chars for a literal search.
-  local needle = bin:gsub('(%W)', '%%%1')
-  if not path:find(needle) then vim.env.PATH = bin .. ':' .. path end
+  -- Order: shims first, then full distributions (node/npm need their real bin dir).
+  prepend_dir(bin)
+  prepend_dir(vim.fs.joinpath(M.tools_root(), 'nodejs', 'bin'))
+  prepend_dir(vim.fs.joinpath(M.tools_root(), 'maven', 'bin'))
+  prepend_dir(vim.fs.joinpath(M.tools_root(), 'jdk-21', 'bin'))
 end
 
 ---@return string sys lowercase: linux|darwin|windows
@@ -105,8 +117,15 @@ function M.extract(archive, outdir)
     return true
   end
   if vim.fn.executable 'tar' ~= 1 then return false, 'tar required' end
-  local result = vim.system({ 'tar', '-xzf', archive, '-C', outdir }, { text = true }):wait()
-  if result.code ~= 0 then return false, result.stderr or 'tar failed' end
+  -- Support .tar.gz / .tgz / .tar.xz / plain .tar (Node ships linux builds as .tar.xz).
+  local flags = '-xf'
+  if archive:match '%.tar%.gz$' or archive:match '%.tgz$' then
+    flags = '-xzf'
+  elseif archive:match '%.tar%.xz$' or archive:match '%.txz$' then
+    flags = '-xJf'
+  end
+  local result = vim.system({ 'tar', flags, archive, '-C', outdir }, { text = true }):wait()
+  if result.code ~= 0 then return false, result.stderr or ('tar extract failed (' .. flags .. ')') end
   return true
 end
 
@@ -438,12 +457,328 @@ function M.ensure_lazydocker()
   return M.ensure_jesseduffield 'lazydocker'
 end
 
+---Build ripgrep GitHub release asset URL (musl preferred on Linux for portability).
+---@param tag string e.g. 15.2.0 (no leading v) or v15.2.0
+---@return string|nil url
+---@return string|nil err
+function M.ripgrep_asset_url(tag)
+  local sys, arch = M.os_arch()
+  local version = tag:gsub('^v', '')
+  local asset
+  if sys == 'linux' then
+    local triple
+    if arch == 'x86_64' then
+      triple = 'x86_64-unknown-linux-musl'
+    elseif arch == 'arm64' then
+      triple = 'aarch64-unknown-linux-musl'
+    elseif arch == 'armv7' then
+      triple = 'armv7-unknown-linux-gnueabihf'
+    else
+      return nil, 'unsupported arch for ripgrep: ' .. arch
+    end
+    asset = string.format('ripgrep-%s-%s.tar.gz', version, triple)
+  elseif sys == 'darwin' then
+    local triple = arch == 'arm64' and 'aarch64-apple-darwin' or 'x86_64-apple-darwin'
+    asset = string.format('ripgrep-%s-%s.tar.gz', version, triple)
+  elseif sys == 'windows' then
+    local triple = arch == 'arm64' and 'aarch64-pc-windows-msvc' or 'x86_64-pc-windows-msvc'
+    asset = string.format('ripgrep-%s-%s.zip', version, triple)
+  else
+    return nil, 'unsupported OS for ripgrep: ' .. sys
+  end
+  return string.format('https://github.com/BurntSushi/ripgrep/releases/download/%s/%s', version, asset), nil
+end
+
+---Build fd GitHub release asset URL.
+---@param tag string e.g. v10.4.2
+---@return string|nil url
+---@return string|nil err
+function M.fd_asset_url(tag)
+  local sys, arch = M.os_arch()
+  local version = tag:match '^v' and tag or ('v' .. tag)
+  local asset
+  if sys == 'linux' then
+    local triple
+    if arch == 'x86_64' then
+      triple = 'x86_64-unknown-linux-musl'
+    elseif arch == 'arm64' then
+      triple = 'aarch64-unknown-linux-musl'
+    elseif arch == 'armv7' then
+      triple = 'arm-unknown-linux-musleabihf'
+    else
+      return nil, 'unsupported arch for fd: ' .. arch
+    end
+    asset = string.format('fd-%s-%s.tar.gz', version, triple)
+  elseif sys == 'darwin' then
+    local triple = arch == 'arm64' and 'aarch64-apple-darwin' or 'x86_64-apple-darwin'
+    asset = string.format('fd-%s-%s.tar.gz', version, triple)
+  elseif sys == 'windows' then
+    local triple = arch == 'arm64' and 'aarch64-pc-windows-msvc' or 'x86_64-pc-windows-msvc'
+    asset = string.format('fd-%s-%s.zip', version, triple)
+  else
+    return nil, 'unsupported OS for fd: ' .. sys
+  end
+  return string.format('https://github.com/sharkdp/fd/releases/download/%s/%s', version, asset), nil
+end
+
+---@param tool string display / INSTALLING key
+---@param exe string binary name on PATH
+---@param repo string owner/name
+---@param asset_url_fn fun(tag: string): string|nil, string|nil
+---@return boolean ok
+---@return string|nil path_or_err
+local function ensure_github_cli(tool, exe, repo, asset_url_fn)
+  local existing = M.find_executable(exe)
+  if existing then return true, existing end
+
+  if INSTALLING[tool] then return false, tool .. ' install already in progress' end
+  INSTALLING[tool] = true
+  vim.notify(string.format('Installing %s (auto)…', tool), vim.log.levels.INFO)
+
+  local tag, tag_err = M.latest_release_tag(repo)
+  if not tag then
+    INSTALLING[tool] = nil
+    return false, tag_err
+  end
+
+  local url, url_err = asset_url_fn(tag)
+  if not url then
+    INSTALLING[tool] = nil
+    return false, url_err
+  end
+
+  local work = vim.fs.joinpath(M.tools_root(), 'downloads', tool)
+  vim.fn.mkdir(work, 'p')
+  local archive = vim.fs.joinpath(work, url:match '[^/]+$')
+  local ok_dl, dl_err = M.download(url, archive)
+  if not ok_dl then
+    INSTALLING[tool] = nil
+    return false, dl_err
+  end
+
+  local extract_dir = vim.fs.joinpath(work, 'extract')
+  vim.fn.delete(extract_dir, 'rf')
+  local ok_ex, ex_err = M.extract(archive, extract_dir)
+  if not ok_ex then
+    INSTALLING[tool] = nil
+    return false, ex_err
+  end
+
+  local bin_name = exe .. (is_windows() and '.exe' or '')
+  local found = find_in_tree(extract_dir, bin_name)
+  if not found then
+    INSTALLING[tool] = nil
+    return false, 'binary not found in archive: ' .. bin_name
+  end
+
+  local ok_link, link_err = M.link_to_bin(found, bin_name)
+  INSTALLING[tool] = nil
+  if not ok_link then return false, link_err end
+
+  local path = M.find_executable(exe)
+  if not path then return false, tool .. ' installed but not executable' end
+  vim.notify(string.format('%s installed → %s', tool, path), vim.log.levels.INFO)
+  return true, path
+end
+
+---Ensure ripgrep (`rg`) for Telescope live grep.
+function M.ensure_ripgrep()
+  return ensure_github_cli('ripgrep', 'rg', 'BurntSushi/ripgrep', M.ripgrep_asset_url)
+end
+
+---Ensure fd (`fd` / `fdfind`) for Telescope / file finders.
+function M.ensure_fd()
+  -- Debian/Ubuntu package installs as fdfind
+  local existing = M.find_executable 'fd'
+  if existing then return true, existing end
+  local fdfind = M.find_executable 'fdfind'
+  if fdfind then
+    M.link_to_bin(fdfind, 'fd')
+    return true, M.find_executable 'fd' or fdfind
+  end
+  return ensure_github_cli('fd', 'fd', 'sharkdp/fd', M.fd_asset_url)
+end
+
+---Resolve Node.js dist archive URL for current OS/arch (LTS).
+---@param version string e.g. v24.18.0
+---@return string|nil url
+---@return string|nil err
+function M.nodejs_asset_url(version)
+  local sys, arch = M.os_arch()
+  local ver = version:match '^v' and version or ('v' .. version)
+  local platform, arch_part, ext
+  if sys == 'linux' then
+    platform = 'linux'
+    arch_part = arch == 'arm64' and 'arm64' or (arch == 'x86_64' and 'x64' or nil)
+    ext = 'tar.xz'
+  elseif sys == 'darwin' then
+    platform = 'darwin'
+    arch_part = arch == 'arm64' and 'arm64' or (arch == 'x86_64' and 'x64' or nil)
+    ext = 'tar.gz'
+  elseif sys == 'windows' then
+    platform = 'win'
+    arch_part = arch == 'arm64' and 'arm64' or (arch == 'x86_64' and 'x64' or nil)
+    ext = 'zip'
+  else
+    return nil, 'unsupported OS for nodejs: ' .. sys
+  end
+  if not arch_part then return nil, 'unsupported arch for nodejs: ' .. arch end
+  local name = string.format('node-%s-%s-%s.%s', ver, platform, arch_part, ext)
+  return string.format('https://nodejs.org/dist/%s/%s', ver, name), nil
+end
+
+---@return string|nil version e.g. v24.18.0
+---@return string|nil err
+function M.latest_node_lts_version()
+  local tmp = vim.fn.tempname() .. '-node-index.json'
+  local ok, err = M.download('https://nodejs.org/dist/index.json', tmp)
+  if not ok then return nil, err end
+  local lines = vim.fn.readfile(tmp)
+  vim.fn.delete(tmp)
+  local decoded = vim.json.decode(table.concat(lines, '\n'))
+  if type(decoded) ~= 'table' then return nil, 'invalid nodejs index.json' end
+  for _, entry in ipairs(decoded) do
+    if entry.lts and entry.lts ~= false and entry.version then return entry.version, nil end
+  end
+  return nil, 'no LTS version found in nodejs index.json'
+end
+
+---Ensure Node.js + npm (needed by Mason for JS/TS/Vue tools and npm runners).
+---@return boolean ok
+---@return string|nil path_or_err
+function M.ensure_nodejs()
+  local existing = M.find_executable 'node'
+  if existing then
+    -- Prefer having npm too; if node exists without npm, still accept.
+    return true, existing
+  end
+
+  if INSTALLING.nodejs then return false, 'Node.js install already in progress' end
+  INSTALLING.nodejs = true
+  vim.notify('Installing Node.js LTS (auto)…', vim.log.levels.INFO)
+
+  local version, ver_err = M.latest_node_lts_version()
+  if not version then
+    INSTALLING.nodejs = nil
+    return false, ver_err
+  end
+
+  local url, url_err = M.nodejs_asset_url(version)
+  if not url then
+    INSTALLING.nodejs = nil
+    return false, url_err
+  end
+
+  local work = vim.fs.joinpath(M.tools_root(), 'downloads', 'nodejs')
+  vim.fn.mkdir(work, 'p')
+  local archive = vim.fs.joinpath(work, url:match '[^/]+$')
+  local ok_dl, dl_err = M.download(url, archive)
+  if not ok_dl then
+    INSTALLING.nodejs = nil
+    return false, dl_err
+  end
+
+  local extract_dir = vim.fs.joinpath(work, 'extract')
+  vim.fn.delete(extract_dir, 'rf')
+  local ok_ex, ex_err = M.extract(archive, extract_dir)
+  if not ok_ex then
+    INSTALLING.nodejs = nil
+    return false, ex_err
+  end
+
+  local node_bin = find_in_tree(extract_dir, is_windows() and 'node.exe' or 'node')
+  if not node_bin then
+    INSTALLING.nodejs = nil
+    return false, 'node binary not found in Node.js archive'
+  end
+
+  local node_home = vim.fs.dirname(vim.fs.dirname(node_bin))
+  local dest = vim.fs.joinpath(M.tools_root(), 'nodejs')
+  vim.fn.delete(dest, 'rf')
+  vim.fn.mkdir(dest, 'p')
+  local result = vim.system({ 'cp', '-a', node_home .. '/.', dest }, { text = true }):wait()
+  if result.code ~= 0 then
+    INSTALLING.nodejs = nil
+    return false, result.stderr or 'failed to install Node.js'
+  end
+
+  -- Do not copy npm/npx into kickstart-tools/bin — they are scripts/symlinks that
+  -- resolve relative to the Node distribution. Prefer PATH → nodejs/bin.
+  M.prepend_path()
+
+  INSTALLING.nodejs = nil
+  local path = M.find_executable 'node'
+  if not path then return false, 'Node.js installed but not executable' end
+  vim.notify('Node.js installed → ' .. path, vim.log.levels.INFO)
+  return true, path
+end
+
+---Sync bootstrap before Mason: PATH + Node (JS tools) + JDK 21 (jdtls).
+---Blocking on first launch only when tools are missing.
+---@return table results map of tool -> { ok, detail }
+function M.ensure_startup_sync()
+  M.prepend_path()
+  local results = {}
+  local ok_node, node_detail = M.ensure_nodejs()
+  results.nodejs = { ok = ok_node, detail = node_detail }
+  if not ok_node then
+    vim.schedule(function() vim.notify('Node.js auto-install: ' .. tostring(node_detail), vim.log.levels.WARN) end)
+  end
+  local ok_jdk, jdk_detail = M.ensure_jdk21()
+  results.jdk21 = { ok = ok_jdk, detail = jdk_detail }
+  if not ok_jdk then
+    vim.schedule(function() vim.notify('JDK auto-install: ' .. tostring(jdk_detail), vim.log.levels.WARN) end)
+  end
+  -- Small CLIs used immediately by Telescope / health — sync if missing.
+  local ok_rg, rg_detail = M.ensure_ripgrep()
+  results.ripgrep = { ok = ok_rg, detail = rg_detail }
+  local ok_fd, fd_detail = M.ensure_fd()
+  results.fd = { ok = ok_fd, detail = fd_detail }
+  return results
+end
+
 ---Background ensure for tools commonly needed (non-blocking schedule).
 function M.ensure_common_async()
   vim.schedule(function()
     pcall(M.ensure_lazygit)
     pcall(M.ensure_lazydocker)
+    pcall(M.ensure_maven)
+    pcall(M.ensure_ripgrep)
+    pcall(M.ensure_fd)
+    pcall(M.ensure_nodejs)
   end)
+end
+
+---Install / refresh all managed tools (sync). Useful via :KickstartEnsureTools.
+---@return table results
+function M.ensure_all()
+  M.prepend_path()
+  local results = {
+    nodejs = { M.ensure_nodejs() },
+    jdk21 = { M.ensure_jdk21() },
+    ripgrep = { M.ensure_ripgrep() },
+    fd = { M.ensure_fd() },
+    maven = { M.ensure_maven() },
+    lazygit = { M.ensure_lazygit() },
+    lazydocker = { M.ensure_lazydocker() },
+  }
+  return results
+end
+
+---System packages that cannot be auto-downloaded (must come from apt/pacman).
+---Documented for Ubuntu / Arch install recipes.
+---@return string[]
+function M.required_system_packages()
+  return {
+    'git', -- clone plugins / kickstart
+    'curl', -- or wget — download tools
+    'unzip', -- zip archives (Windows/Linux assets)
+    'tar', -- usually base system
+    'gzip', -- extract .tar.gz (JDK, ripgrep, …)
+    'xz', -- extract Node.js .tar.xz (xz-utils on Debian/Ubuntu)
+    'make', -- telescope-fzf-native
+    'gcc', -- telescope-fzf-native / treesitter compilers
+  }
 end
 
 return M

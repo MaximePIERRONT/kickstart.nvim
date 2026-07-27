@@ -26,6 +26,28 @@ if sys == 'linux' and arch == 'x86_64' then
 end
 harness.ok 'lazydocker asset url'
 
+-- ripgrep / fd / node asset URLs (linux x86_64)
+local url_rg = select(1, ensure.ripgrep_asset_url '15.2.0')
+harness.assert_truthy(url_rg, 'ripgrep url')
+if sys == 'linux' and arch == 'x86_64' then
+  harness.assert_has(url_rg, 'ripgrep-15.2.0-x86_64-unknown-linux-musl.tar.gz', 'rg linux musl')
+end
+harness.ok 'ripgrep asset url'
+
+local url_fd = select(1, ensure.fd_asset_url 'v10.4.2')
+harness.assert_truthy(url_fd, 'fd url')
+if sys == 'linux' and arch == 'x86_64' then
+  harness.assert_has(url_fd, 'fd-v10.4.2-x86_64-unknown-linux-musl.tar.gz', 'fd linux musl')
+end
+harness.ok 'fd asset url'
+
+local url_node = select(1, ensure.nodejs_asset_url 'v24.18.0')
+harness.assert_truthy(url_node, 'nodejs url')
+if sys == 'linux' and arch == 'x86_64' then
+  harness.assert_has(url_node, 'node-v24.18.0-linux-x64.tar.xz', 'node linux x64 xz')
+end
+harness.ok 'nodejs asset url'
+
 -- tools root / bin dir
 local root = ensure.tools_root()
 harness.assert_has(root, 'kickstart-tools', 'tools_root')
@@ -37,6 +59,14 @@ harness.ok 'tools paths'
 local sh = ensure.find_executable 'sh'
 harness.assert_truthy(sh, 'find sh')
 harness.ok 'find_executable'
+
+-- required system packages list (docs / health)
+local pkgs = ensure.required_system_packages()
+harness.assert_truthy(type(pkgs) == 'table' and #pkgs >= 4, 'required_system_packages')
+local joined = table.concat(pkgs, ',')
+harness.assert_has(joined, 'git', 'req git')
+harness.assert_has(joined, 'curl', 'req curl')
+harness.ok 'required_system_packages'
 
 harness.ok 'ensure_tool unit suite'
 vim.cmd 'qa!'

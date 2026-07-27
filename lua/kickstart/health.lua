@@ -20,13 +20,29 @@ local check_version = function()
 end
 
 local check_external_reqs = function()
-  -- Basic utils: `git`, `make`, `unzip`
-  for _, exe in ipairs { 'git', 'make', 'unzip', 'rg' } do
-    local is_executable = vim.fn.executable(exe) == 1
-    if is_executable then
-      vim.health.ok(string.format("Found executable: '%s'", exe))
+  -- Must come from the OS package manager (apt / pacman) — not auto-downloaded.
+  for _, exe in ipairs { 'git', 'curl', 'unzip', 'tar', 'gzip', 'xz', 'make', 'gcc' } do
+    if vim.fn.executable(exe) == 1 then
+      vim.health.ok(string.format("Found system executable: '%s'", exe))
     else
-      vim.health.warn(string.format("Could not find executable: '%s'", exe))
+      local critical = { git = true, curl = true, unzip = true, tar = true, gzip = true, xz = true }
+      local level = critical[exe] and 'error' or 'warn'
+      vim.health[level](string.format("Missing system executable: '%s' (install via apt/pacman)", exe))
+    end
+  end
+
+  -- Auto-installed into stdpath('data')/kickstart-tools when missing.
+  local ok_ensure, ensure = pcall(require, 'custom.ensure_tool')
+  if ok_ensure then
+    ensure.prepend_path()
+    vim.health.info('Managed tools root: ' .. ensure.tools_root())
+  end
+
+  for _, exe in ipairs { 'rg', 'fd', 'node', 'npm', 'java', 'mvn', 'lazygit', 'lazydocker' } do
+    if vim.fn.executable(exe) == 1 then
+      vim.health.ok(string.format("Found tool: '%s' → %s", exe, vim.fn.exepath(exe)))
+    else
+      vim.health.warn(string.format("Tool not on PATH yet: '%s' (auto-install on startup / :KickstartEnsureTools)", exe))
     end
   end
 
@@ -38,6 +54,10 @@ return {
     vim.health.start 'kickstart.nvim'
 
     vim.health.info [[NOTE: Not every warning is a 'must-fix' in `:checkhealth`
+
+  On Ubuntu / Arch: install only git, curl, unzip, tar, gcc, make (+ Neovim).
+  Node, JDK 21, Maven, ripgrep, fd, LazyGit, LazyDocker auto-install into
+  stdpath data. LSP / formatters / DAP install via Mason on startup.
 
   Fix only warnings for plugins and languages you intend to use.
     Mason will give warnings for languages that are not installed.

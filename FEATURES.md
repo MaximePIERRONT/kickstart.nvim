@@ -68,17 +68,36 @@ Légende du statut :
 
 ## Auto-install des dépendances
 
+Objectif Ubuntu / Arch : **paquets système minimaux**, le reste au **démarrage de Neovim** ou via **Mason**.
+
+### Paquets OS uniquement (apt / pacman)
+
+| Paquet | Pourquoi |
+| --- | --- |
+| `neovim` (≥ 0.12) | éditeur |
+| `git` | plugins `vim.pack` |
+| `curl` (ou `wget`) | téléchargements |
+| `unzip` + `tar` + `gzip` + `xz` (`xz-utils` sur Ubuntu) | archives (JDK `.tar.gz`, Node `.tar.xz`) |
+| `gcc` + `make` | `telescope-fzf-native` / compile parsers |
+
+### Auto au démarrage / à la demande
+
 Quand un outil manque, la config le télécharge dans `stdpath('data')/kickstart-tools` (préfixe `$PATH`) :
 
 | Outil | Déclencheur | Source |
 | --- | --- | --- |
-| **JDK 21+** (jdtls) | démarrage LSP si `JDTLS_JAVA_HOME` / `JAVA_HOME` absents ou < 21 | Eclipse Temurin (Adoptium) |
-| **Maven** (`mvn`) | premier `:Maven` / test Java / runner | Apache Maven binary |
-| **lazygit** | `<leader>gg` / `:LazyGit` (+ warm VimEnter) | GitHub releases |
-| **lazydocker** | `<leader>ld` / `:LazyDocker` (+ warm VimEnter) | GitHub releases |
-| LSP / formatters / DAP | Mason (`mason-tool-installer`) | Mason registry |
+| **Node.js LTS** + npm | sync avant Mason (startup) | nodejs.org dist |
+| **JDK 21+** (jdtls) | sync avant Mason si `JAVA_HOME` absent / &lt; 21 | Eclipse Temurin (Adoptium) |
+| **ripgrep** (`rg`) | sync startup + warm | GitHub releases |
+| **fd** | sync startup + warm | GitHub releases |
+| **Maven** (`mvn`) | warm VimEnter / premier `:Maven` / tests | Apache Maven binary |
+| **lazygit** | warm VimEnter / `<leader>gg` | GitHub releases |
+| **lazydocker** | warm VimEnter / `<leader>ld` | GitHub releases |
+| LSP / formatters / DAP / `tree-sitter-cli` | Mason (`mason-tool-installer` au démarrage) | Mason registry |
 
-Module : `lua/custom/ensure_tool.lua`.
+Module : `lua/custom/ensure_tool.lua`. Commande manuelle : `:KickstartEnsureTools`.
+
+**Non auto-installé :** le démon Docker (LazyDocker a besoin que Docker tourne déjà).
 
 ---
 
@@ -98,10 +117,10 @@ Suite CI : `.github/workflows/features-ci.yml`
 
 | Couche | Ce qui est vérifié |
 | --- | --- |
-| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs, PATH) |
+| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs rg/fd/node/lazygit, PATH, paquets OS) |
 | **Unit/intégration (Java)** | `test-project` multi-module — domain / api / infrastructure (Micronaut) via `mvn verify` |
-| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
-| **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java, **auto-install LazyGit/LazyDocker** |
+| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker/KickstartEnsureTools), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
+| **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java, **auto-install rg/fd/LazyGit/LazyDocker/Maven** |
 
 Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 
@@ -110,7 +129,8 @@ Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 3. **Runners projets (P1)** — ~~npm + Maven (Java / Micronaut)~~ ✅
 4. **Debug & Tests (P2)** — ~~DAP + keymaps `mvn test` (setup auto via Mason)~~ ✅
 5. **LazyGit / LazyDocker (P2)** — ~~TUI flottant + auto-install binaires (+ JDK / Maven on-demand)~~ ✅
-6. **Sessions (P3)** — seulement si le reste est stable
+6. **Install facile Ubuntu / Arch** — ~~paquets OS minimaux ; Node / JDK / rg / fd / Maven / Lazy* + Mason au démarrage~~ ✅
+7. **Sessions (P3)** — seulement si le reste est stable
 
 ---
 
