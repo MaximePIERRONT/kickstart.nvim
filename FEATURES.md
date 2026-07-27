@@ -56,13 +56,13 @@ Légende du statut :
 
 | Feature | Statut | Notes |
 | --- | --- | --- |
-| Debug | [~] | Exemple `kickstart.plugins.debug` commenté ; DAP Java / JS à brancher |
-| Tests | [ ] | Keymaps Maven (`mvn test`, classe / méthode courante) ; outils via Mason quand possible |
+| Debug | [x] | `kickstart.plugins.debug` : DAP UI + **js-debug-adapter** + **java-debug-adapter** (bundles jdtls) ; F5/F1–F3/F7, `<leader>b`/`B` |
+| Tests | [x] | Keymaps Maven minimaux : `<leader>jt` classe / `jm` méthode / `ja` all + `:MavenTest` (pas de neotest) |
 | Snippets | [~] | LuaSnip OK ; `friendly-snippets` encore commenté |
 | LazyGit dans l’interface Neovim | [ ] | Terminal flottant / plugin LazyGit |
 | LazyDocker dans l’interface Neovim | [ ] | Idem pour Docker |
 
-**Critère de done P2 :** debugger, lancer les tests Maven, et gérer git/docker sans sortir de Neovim.
+**Critère de done P2 :** debugger + tests Maven ✅ ; LazyGit / LazyDocker encore à faire.
 
 ---
 
@@ -81,7 +81,7 @@ Légende du statut :
 1. **Socle langages (P0)** — ~~Java (jdtls) + Vue/TS (vtsls) + HTML/CSS/JSON/YAML/Bash/XML + prettier / eslint / google-java-format / checkstyle~~ ✅
 2. **Navigation & Git (P1)** — ~~neo-tree + keymaps gitsigns~~ ✅
 3. **Runners projets (P1)** — ~~npm + Maven (Java / Micronaut)~~ ✅
-4. **Debug & Tests (P2)** — DAP + keymaps `mvn test` (setup auto via Mason)
+4. **Debug & Tests (P2)** — ~~DAP + keymaps `mvn test` (setup auto via Mason)~~ ✅
 5. **LazyGit / LazyDocker (P2)**
 6. **Sessions (P3)** — seulement si le reste est stable
 
