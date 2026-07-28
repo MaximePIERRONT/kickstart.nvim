@@ -52,12 +52,17 @@ harness.wait_until(180000, function()
 end, 'jdtls attach')
 harness.ok 'jdtls LSP attached'
 
--- Format-on-demand via jdtls with the repository Eclipse profile.
+-- Format valid-but-unformatted source in the attached buffer. Keeping the
+-- public type compatible with Greeting.java matters: jdtls declines formatting
+-- when the buffer introduces a public type whose name does not match the file.
 vim.api.nvim_buf_set_lines(0, 0, -1, false, {
   'package com.example.domain;',
   '',
-  'public final class FormattingFixture {',
-  'public static int add(int a,int b){return a+b;}',
+  'public record Greeting(String message) {',
+  'public static Greeting forName(String name){',
+  'String safe=(name==null||name.isBlank())?"world":name.trim();',
+  'return new Greeting("Hello, "+safe+"!");',
+  '}',
   '}',
 })
 local before = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
@@ -66,7 +71,7 @@ local fmt_ok, fmt_err = pcall(function()
 end)
 harness.assert_truthy(fmt_ok, 'conform format java: ' .. tostring(fmt_err))
 local after = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
-harness.assert_truthy(after ~= before and after:find('int add%(int a, int b%)'), 'java file formatted')
+harness.assert_truthy(after ~= before and after:find('forName%(String name%) {'), 'java file formatted')
 harness.ok 'conform jdtls Eclipse format'
 
 -- Google Java Format remains selectable without changing the default.
