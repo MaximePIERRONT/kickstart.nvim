@@ -30,10 +30,17 @@ Légende du statut :
 | --- | --- | --- |
 | LSP | [x] | Mason + LSP : `jdtls` (JDK 21 via `JDTLS_JAVA_HOME`), `vtsls` + `vue_ls`, HTML/CSS/JSON/YAML/Bash/XML |
 | Autocompletion | [x] | `blink.cmp` + LuaSnip déjà en place |
-| Formatage | [x] | `conform.nvim` : prettier (web), stylua, shfmt, **google-java-format** (style Google, pas AOSP) + format on save |
+| Formatage | [x] | `conform.nvim` : prettier (web), stylua, shfmt ; Java utilise par défaut le profil Eclipse 4 espaces de `config/formatter/eclipse-java.xml` via jdtls, avec Google Java Format sélectionnable (`:JavaFormat`, `<leader>jf`) |
 | Linter | [x] | `nvim-lint` : eslint_d, shellcheck, markdownlint, checkstyle |
 
 **Critère de done P0 :** ouvrir un fichier `.java`, `.vue`, `.ts` et avoir LSP + completion + format + lint utilisables.
+
+### Format Java
+
+- Par défaut, `jdtls` applique le profil Eclipse `Default` de `config/formatter/eclipse-java.xml`.
+- `:JavaFormat` ou `<leader>jf` ouvre un sélecteur, comme le choix de code style d'un IDE.
+- `:JavaFormat eclipse` restaure le profil du dépôt ; `:JavaFormat google` active
+  `google-java-format` pour la session Neovim. `<leader>f` applique le choix courant.
 
 ---
 

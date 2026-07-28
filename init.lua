@@ -253,14 +253,14 @@ do
   })
 
   vim.api.nvim_create_autocmd('FileType', {
-    desc = 'Match Google Java Format indentation defaults',
+    desc = 'Match the default Eclipse Java formatter indentation',
     pattern = 'java',
     group = vim.api.nvim_create_augroup('kickstart-java-indent', { clear = true }),
     callback = function()
       vim.bo.expandtab = true
-      vim.bo.tabstop = 2
-      vim.bo.shiftwidth = 2
-      vim.bo.softtabstop = 2
+      vim.bo.tabstop = 4
+      vim.bo.shiftwidth = 4
+      vim.bo.softtabstop = 4
     end,
   })
 end
@@ -821,6 +821,17 @@ do
       init_options = {
         bundles = java_debug_bundles(),
       },
+      settings = {
+        java = {
+          format = {
+            enabled = true,
+            settings = {
+              url = vim.uri_from_fname(vim.fs.joinpath(vim.fn.stdpath 'config', 'config', 'formatter', 'eclipse-java.xml')),
+              profile = 'Default',
+            },
+          },
+        },
+      },
     }
   else
     if jdtls_java and jdtls_java_version then jdtls_error = 'JDTLS_JAVA_HOME must point to a JDK 21+; current version is Java ' .. jdtls_java_version .. '.' end
@@ -909,7 +920,13 @@ do
         java = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 2000, lsp_format = 'fallback' }
+        local opts = { timeout_ms = 2000, lsp_format = 'fallback' }
+        -- Eclipse/jdtls is the Java default; keep LSP preferred unless Google is selected.
+        if vim.bo[bufnr].filetype == 'java' and vim.g.kickstart_java_formatter ~= 'google' then
+          opts.timeout_ms = 5000
+          opts.lsp_format = 'prefer'
+        end
+        return opts
       else
         return nil
       end
@@ -931,11 +948,13 @@ do
       markdown = { 'prettier' },
       sh = { 'shfmt' },
       bash = { 'shfmt' },
-      java = { 'google-java-format' },
+      -- Prefer jdtls (Eclipse profile in config/formatter/eclipse-java.xml).
+      -- An empty list would disable formatting entirely in conform.nvim.
+      java = { lsp_format = 'prefer' },
     },
   }
 
-  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true, lsp_format = 'fallback' } end, { desc = '[F]ormat buffer' })
+  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('custom.plugins.java-format').format() end, { desc = '[F]ormat buffer' })
 end
 
 -- ============================================================

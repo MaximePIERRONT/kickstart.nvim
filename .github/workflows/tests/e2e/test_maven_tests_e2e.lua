@@ -36,7 +36,17 @@ for _, case in ipairs(cases) do
   harness.assert_has(table.concat(method_cmd, ' '), case.fqcn .. '#' .. case.method, case.module .. ' method')
 
   local result = vim.system(class_cmd, { cwd = cwd, text = true }):wait()
-  harness.assert_eq(result.code, 0, case.module .. ' mvn class test')
+  if result.code ~= 0 then
+    harness.fail(string.format(
+      '%s mvn class test: expected 0, got %s\ncmd: %s\ncwd: %s\nstdout:\n%s\nstderr:\n%s',
+      case.module,
+      tostring(result.code),
+      table.concat(class_cmd, ' '),
+      tostring(cwd),
+      result.stdout or '',
+      result.stderr or ''
+    ))
+  end
   harness.ok('e2e maven-tests ' .. case.module)
 end
 
