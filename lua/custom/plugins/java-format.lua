@@ -1,10 +1,13 @@
 -- Java formatter selection. Eclipse/jdtls is the default; Google Java Format
 -- remains available for projects that explicitly use that convention.
+--
+-- Important: conform treats an empty formatter list as "disable formatting".
+-- Eclipse mode therefore keeps an explicit lsp_format preference so jdtls runs.
 local M = {}
 
 local DEFAULT = 'eclipse'
 local FORMATTERS = {
-  eclipse = {},
+  eclipse = { lsp_format = 'prefer' },
   google = { 'google-java-format' },
 }
 

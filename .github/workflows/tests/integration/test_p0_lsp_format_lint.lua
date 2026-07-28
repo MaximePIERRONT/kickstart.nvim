@@ -28,8 +28,10 @@ end
 
 -- Conform formatters configured
 local conform = require 'conform'
+local java_format = require 'custom.plugins.java-format'
 local java_fmts = conform.formatters_by_ft.java or {}
-harness.assert_eq(#java_fmts, 0, 'java formatter defaults to jdtls/Eclipse')
+harness.assert_eq(java_format.current(), 'eclipse', 'java formatter defaults to Eclipse')
+harness.assert_eq(java_fmts.lsp_format, 'prefer', 'java prefers jdtls/Eclipse formatting')
 local ts_fmts = conform.formatters_by_ft.typescript or {}
 harness.assert_eq(ts_fmts[1], 'prettier', 'ts formatter')
 
@@ -42,7 +44,7 @@ harness.assert_truthy(vim.tbl_contains(lint.linters_by_ft.typescript or {}, 'esl
 harness.require_ok 'blink.cmp'
 harness.require_ok 'luasnip'
 
--- Attach jdtls on a real Java file
+-- Attach jdtls on a real project file, then format a sibling scratch type.
 local java_file = repo .. '/test-project/domain/src/main/java/com/example/domain/Greeting.java'
 pcall(vim.cmd, 'edit! ' .. vim.fn.fnameescape(java_file))
 vim.bo.filetype = 'java'
@@ -52,34 +54,44 @@ harness.wait_until(180000, function()
 end, 'jdtls attach')
 harness.ok 'jdtls LSP attached'
 
--- Format valid-but-unformatted source in the attached buffer. Keeping the
--- public type compatible with Greeting.java matters: jdtls declines formatting
--- when the buffer introduces a public type whose name does not match the file.
-vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+local scratch = repo .. '/test-project/domain/src/main/java/com/example/domain/FormatScratch.java'
+vim.fn.writefile({
   'package com.example.domain;',
   '',
-  'public record Greeting(String message) {',
-  'public static Greeting forName(String name){',
-  'String safe=(name==null||name.isBlank())?"world":name.trim();',
-  'return new Greeting("Hello, "+safe+"!");',
+  'public final class FormatScratch {',
+  'public static int add(int a,int b){return a+b;}',
   '}',
-  '}',
-})
+}, scratch)
+
+local function cleanup_scratch()
+  pcall(vim.fn.delete, scratch)
+end
+
+pcall(vim.cmd, 'edit! ' .. vim.fn.fnameescape(scratch))
+vim.bo.filetype = 'java'
+harness.wait_until(60000, function()
+  local clients = vim.lsp.get_clients { name = 'jdtls', bufnr = 0 }
+  return #clients > 0 and clients[1].server_capabilities.documentFormattingProvider
+end, 'jdtls format capability on scratch')
+
 local before = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
 local fmt_ok, fmt_err = pcall(function()
-  require('conform').format { async = false, lsp_format = 'prefer' }
+  require('conform').format { async = false, timeout_ms = 15000, lsp_format = 'prefer' }
 end)
-harness.assert_truthy(fmt_ok, 'conform format java: ' .. tostring(fmt_err))
+if not fmt_ok then
+  cleanup_scratch()
+  harness.fail('conform format java: ' .. tostring(fmt_err))
+end
 local after = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
-harness.assert_truthy(after ~= before and after:find('forName%(String name%) {'), 'java file formatted')
+cleanup_scratch()
+harness.assert_truthy(after ~= before and after:find('int add%(int a, int b%)'), 'java file formatted')
 harness.ok 'conform jdtls Eclipse format'
 
 -- Google Java Format remains selectable without changing the default.
-local java_format = require 'custom.plugins.java-format'
 harness.assert_truthy(java_format.set('google', true), 'select Google Java Format')
 harness.assert_eq(conform.formatters_by_ft.java[1], 'google-java-format', 'Google Java Format selected')
 harness.assert_truthy(java_format.set('eclipse', true), 'restore Eclipse formatter')
-harness.assert_eq(#conform.formatters_by_ft.java, 0, 'Eclipse formatter restored')
+harness.assert_eq(conform.formatters_by_ft.java.lsp_format, 'prefer', 'Eclipse formatter restored')
 
 -- TypeScript sample: prettier available (format may no-op if already pretty)
 local ts_file = repo .. '/fixtures/samples/typescript/greet.ts'

@@ -942,9 +942,9 @@ do
       markdown = { 'prettier' },
       sh = { 'shfmt' },
       bash = { 'shfmt' },
-      -- Empty external formatter list makes Conform use jdtls as the fallback.
-      -- jdtls loads config/formatter/eclipse-java.xml (profile "Default").
-      java = {},
+      -- Prefer jdtls (Eclipse profile in config/formatter/eclipse-java.xml).
+      -- An empty list would disable formatting entirely in conform.nvim.
+      java = { lsp_format = 'prefer' },
     },
   }
 
