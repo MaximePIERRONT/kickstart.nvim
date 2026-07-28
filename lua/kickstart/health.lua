@@ -38,7 +38,7 @@ local check_external_reqs = function()
     vim.health.info('Managed tools root: ' .. ensure.tools_root())
   end
 
-  for _, exe in ipairs { 'rg', 'fd', 'node', 'npm', 'java', 'mvn', 'lazygit', 'lazydocker' } do
+  for _, exe in ipairs { 'rg', 'fd', 'node', 'npm', 'java', 'mvn', 'lazygit', 'lazydocker', 'lazysql' } do
     if vim.fn.executable(exe) == 1 then
       vim.health.ok(string.format("Found tool: '%s' → %s", exe, vim.fn.exepath(exe)))
     else
@@ -56,7 +56,7 @@ return {
     vim.health.info [[NOTE: Not every warning is a 'must-fix' in `:checkhealth`
 
   On Ubuntu / Arch: install only git, curl, unzip, tar, gcc, make (+ Neovim).
-  Node, JDK 21, Maven, ripgrep, fd, LazyGit, LazyDocker auto-install into
+  Node, JDK 21, Maven, ripgrep, fd, LazyGit, LazyDocker, LazySQL auto-install into
   stdpath data. LSP / formatters / DAP install via Mason on startup.
 
   Fix only warnings for plugins and languages you intend to use.

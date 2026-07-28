@@ -190,6 +190,6 @@ jobs:
         run: |
           export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
           nvim --headless -c "luafile .github/workflows/tests/e2e/test_dap_e2e.lua"
-      - name: E2E — LazyGit / LazyDocker auto-install
+      - name: E2E — LazyGit / LazyDocker / LazySQL auto-install
         run: |
           nvim --headless -u NONE -c "luafile .github/workflows/tests/e2e/test_lazy_tui_e2e.lua"
