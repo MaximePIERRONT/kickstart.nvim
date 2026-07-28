@@ -920,7 +920,13 @@ do
         java = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 2000, lsp_format = 'fallback' }
+        local opts = { timeout_ms = 2000, lsp_format = 'fallback' }
+        -- Eclipse/jdtls is the Java default; keep LSP preferred unless Google is selected.
+        if vim.bo[bufnr].filetype == 'java' and vim.g.kickstart_java_formatter ~= 'google' then
+          opts.timeout_ms = 5000
+          opts.lsp_format = 'prefer'
+        end
+        return opts
       else
         return nil
       end
