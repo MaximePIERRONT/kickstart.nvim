@@ -105,7 +105,7 @@ Module : `lua/custom/ensure_tool.lua`. Commande manuelle : `:KickstartEnsureTool
 
 | Feature | Statut | Notes |
 | --- | --- | --- |
-| UI / theme | [~] | Tokyo Night déjà présent ; polish optionnel |
+| UI / theme | [x] | Catppuccin Latte (clair) |
 | Sessions | [ ] | Restaurer onglets / buffers entre sessions |
 | IA / assistants code | [-] | Hors scope |
 
