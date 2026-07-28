@@ -22,6 +22,7 @@ local expected_maps = {
   { '<leader>jt', 'java test class' },
   { '<leader>jm', 'java test method' },
   { '<leader>ja', 'java test all' },
+  { '<leader>jf', 'java formatter selector' },
   -- P2 debug
   { '<leader>b', 'breakpoint' },
   { '<leader>B', 'conditional breakpoint' },
@@ -43,7 +44,7 @@ for _, item in ipairs(expected_maps) do
   harness.ok('keymap ' .. item[1])
 end
 
-local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'LazySQL', 'KickstartEnsureTools' }
+local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'JavaFormat', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'LazySQL', 'KickstartEnsureTools' }
 for _, name in ipairs(commands) do
   if not harness.command_exists(name) then harness.fail('missing command :' .. name) end
   harness.ok('command :' .. name)

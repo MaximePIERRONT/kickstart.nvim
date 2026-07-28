@@ -29,7 +29,7 @@ end
 -- Conform formatters configured
 local conform = require 'conform'
 local java_fmts = conform.formatters_by_ft.java or {}
-harness.assert_eq(java_fmts[1], 'google-java-format', 'java formatter')
+harness.assert_eq(#java_fmts, 0, 'java formatter defaults to jdtls/Eclipse')
 local ts_fmts = conform.formatters_by_ft.typescript or {}
 harness.assert_eq(ts_fmts[1], 'prettier', 'ts formatter')
 
@@ -52,7 +52,7 @@ harness.wait_until(180000, function()
 end, 'jdtls attach')
 harness.ok 'jdtls LSP attached'
 
--- Format-on-demand via conform (google-java-format)
+-- Format-on-demand via jdtls with the repository Eclipse profile.
 local fmt_file = repo .. '/fixtures/samples/java/FormatMe.java'
 local scratch = vim.fn.tempname() .. '.java'
 vim.fn.writefile(vim.fn.readfile(fmt_file), scratch)
@@ -64,9 +64,15 @@ local fmt_ok, fmt_err = pcall(function()
 end)
 harness.assert_truthy(fmt_ok, 'conform format java: ' .. tostring(fmt_err))
 local after = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
--- google-java-format should introduce spaces around operators / braces style change
 harness.assert_truthy(after ~= before or after:find 'int add%(int a, int b%)', 'java file formatted')
-harness.ok 'conform google-java-format'
+harness.ok 'conform jdtls Eclipse format'
+
+-- Google Java Format remains selectable without changing the default.
+local java_format = require 'custom.plugins.java-format'
+harness.assert_truthy(java_format.set('google', true), 'select Google Java Format')
+harness.assert_eq(conform.formatters_by_ft.java[1], 'google-java-format', 'Google Java Format selected')
+harness.assert_truthy(java_format.set('eclipse', true), 'restore Eclipse formatter')
+harness.assert_eq(#conform.formatters_by_ft.java, 0, 'Eclipse formatter restored')
 
 -- TypeScript sample: prettier available (format may no-op if already pretty)
 local ts_file = repo .. '/fixtures/samples/typescript/greet.ts'
