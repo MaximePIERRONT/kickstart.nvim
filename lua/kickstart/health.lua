@@ -21,12 +21,23 @@ end
 
 local check_external_reqs = function()
   -- Basic utils: `git`, `make`, `unzip`
-  for _, exe in ipairs { 'git', 'make', 'unzip', 'rg' } do
+  for _, exe in ipairs { 'git', 'make', 'unzip', 'rg', 'curl' } do
     local is_executable = vim.fn.executable(exe) == 1
     if is_executable then
       vim.health.ok(string.format("Found executable: '%s'", exe))
     else
       vim.health.warn(string.format("Could not find executable: '%s'", exe))
+    end
+  end
+
+  local ok_ensure, ensure = pcall(require, 'custom.ensure_tool')
+  if ok_ensure then
+    ensure.prepend_path()
+    vim.health.info('Managed tools root: ' .. ensure.tools_root())
+    if vim.fn.executable 'lazysql' == 1 then
+      vim.health.ok(string.format("Found tool: 'lazysql' → %s", vim.fn.exepath 'lazysql'))
+    else
+      vim.health.warn("Tool not on PATH yet: 'lazysql' (auto-install on :LazySQL or first <leader>ls)")
     end
   end
 
