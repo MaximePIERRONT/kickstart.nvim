@@ -3,6 +3,13 @@
 -- It configures jdtls (Eclipse JDT Language Server) for Java development.
 
 local jdtls = require 'jdtls'
+local java_format = require 'custom.java_format'
+
+-- Match Eclipse formatter profile (4-space indentation)
+vim.bo.expandtab = true
+vim.bo.tabstop = 4
+vim.bo.shiftwidth = 4
+vim.bo.softtabstop = 4
 
 -- Mason install paths
 local mason_path = vim.fn.stdpath 'data' .. '/mason/packages'
@@ -116,6 +123,11 @@ local config = {
     vim.keymap.set('n', '<leader>jd', function() neotest.run.run { strategy = 'dap' } end, vim.tbl_extend('force', opts, { desc = '[J]ava [D]ebug Test' }))
   end,
 }
+
+local format_settings = java_format.jdtls_format_settings(0)
+if format_settings and format_settings.java then
+  config.settings.java = vim.tbl_deep_extend('force', config.settings.java, format_settings.java)
+end
 
 -- Start or attach jdtls
 jdtls.start_or_attach(config)
