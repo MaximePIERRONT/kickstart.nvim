@@ -1,5 +1,5 @@
 -- Auto-install missing CLI / runtime deps into stdpath('data')/kickstart-tools.
--- Used for Node.js, ripgrep, fd, LazyGit, LazyDocker, JDK 21 (jdtls), and Maven —
+-- Used for Node.js, ripgrep, fd, LazyGit, LazyDocker, Rainfrog, JDK 21 (jdtls), and Maven —
 -- same idea as Mason for LSPs. Designed so Ubuntu/Arch only need a few OS packages.
 
 local M = {}
@@ -457,6 +457,46 @@ function M.ensure_lazydocker()
   return M.ensure_jesseduffield 'lazydocker'
 end
 
+---Build rainfrog GitHub release asset URL (musl preferred on Linux for portability).
+---Assets: rainfrog-vX.Y.Z-<triple>.tar.gz — https://github.com/achristmascarl/rainfrog
+---@param tag string e.g. v0.4.1
+---@return string|nil url
+---@return string|nil err
+function M.rainfrog_asset_url(tag)
+  local sys, arch = M.os_arch()
+  local version = tag:match '^v' and tag or ('v' .. tag)
+  local triple
+  if sys == 'linux' then
+    if arch == 'x86_64' then
+      triple = 'x86_64-unknown-linux-musl'
+    elseif arch == 'arm64' then
+      triple = 'aarch64-unknown-linux-musl'
+    elseif arch == 'i386' then
+      triple = 'i686-unknown-linux-musl'
+    else
+      return nil, 'unsupported arch for rainfrog: ' .. arch
+    end
+  elseif sys == 'darwin' then
+    if arch == 'arm64' then
+      triple = 'aarch64-apple-darwin'
+    elseif arch == 'x86_64' then
+      triple = 'x86_64-apple-darwin'
+    else
+      return nil, 'unsupported arch for rainfrog: ' .. arch
+    end
+  elseif sys == 'windows' then
+    if arch == 'x86_64' then
+      triple = 'x86_64-pc-windows-msvc'
+    else
+      return nil, 'unsupported arch for rainfrog: ' .. arch
+    end
+  else
+    return nil, 'unsupported OS for rainfrog: ' .. sys
+  end
+  local asset = string.format('rainfrog-%s-%s.tar.gz', version, triple)
+  return string.format('https://github.com/achristmascarl/rainfrog/releases/download/%s/%s', version, asset), nil
+end
+
 ---Build ripgrep GitHub release asset URL (musl preferred on Linux for portability).
 ---@param tag string e.g. 15.2.0 (no leading v) or v15.2.0
 ---@return string|nil url
@@ -597,6 +637,11 @@ function M.ensure_fd()
     return true, M.find_executable 'fd' or fdfind
   end
   return ensure_github_cli('fd', 'fd', 'sharkdp/fd', M.fd_asset_url)
+end
+
+---Ensure Rainfrog binary (PATH or auto-download) — TUI DB client (Postgres/MySQL/SQLite/…).
+function M.ensure_rainfrog()
+  return ensure_github_cli('rainfrog', 'rainfrog', 'achristmascarl/rainfrog', M.rainfrog_asset_url)
 end
 
 ---Resolve Node.js dist archive URL for current OS/arch (LTS).
@@ -742,6 +787,7 @@ function M.ensure_common_async()
   vim.schedule(function()
     pcall(M.ensure_lazygit)
     pcall(M.ensure_lazydocker)
+    pcall(M.ensure_rainfrog)
     pcall(M.ensure_maven)
     pcall(M.ensure_ripgrep)
     pcall(M.ensure_fd)
@@ -761,6 +807,7 @@ function M.ensure_all()
     maven = { M.ensure_maven() },
     lazygit = { M.ensure_lazygit() },
     lazydocker = { M.ensure_lazydocker() },
+    rainfrog = { M.ensure_rainfrog() },
   }
   return results
 end

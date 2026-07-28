@@ -3,7 +3,7 @@ name: Features — unit / integration / e2e
 on:
   pull_request:
   push:
-    branches: [master, cursor/from-upstream-master-c628, cursor/debug-tests-p2-7edb, cursor/lazygit-lazydocker-autoinstall-1234, cursor/easy-install-ubuntu-arch-dd26]
+    branches: [master, cursor/from-upstream-master-c628, cursor/debug-tests-p2-7edb, cursor/lazygit-lazydocker-autoinstall-1234, cursor/easy-install-ubuntu-arch-dd26, cursor/rainfrog-db-tui-23a3]
 
 concurrency:
   group: features-ci-${{ github.workflow }}-${{ github.ref }}
@@ -190,6 +190,6 @@ jobs:
         run: |
           export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
           nvim --headless -c "luafile .github/workflows/tests/e2e/test_dap_e2e.lua"
-      - name: E2E — LazyGit / LazyDocker auto-install
+      - name: E2E — LazyGit / LazyDocker / Rainfrog auto-install
         run: |
           nvim --headless -u NONE -c "luafile .github/workflows/tests/e2e/test_lazy_tui_e2e.lua"

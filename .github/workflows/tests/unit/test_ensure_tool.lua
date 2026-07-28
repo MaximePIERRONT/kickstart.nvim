@@ -26,6 +26,13 @@ if sys == 'linux' and arch == 'x86_64' then
 end
 harness.ok 'lazydocker asset url'
 
+local url_rf = select(1, ensure.rainfrog_asset_url 'v0.4.1')
+harness.assert_truthy(url_rf, 'rainfrog url')
+if sys == 'linux' and arch == 'x86_64' then
+  harness.assert_has(url_rf, 'rainfrog-v0.4.1-x86_64-unknown-linux-musl.tar.gz', 'rainfrog linux musl')
+end
+harness.ok 'rainfrog asset url'
+
 -- ripgrep / fd / node asset URLs (linux x86_64)
 local url_rg = select(1, ensure.ripgrep_asset_url '15.2.0')
 harness.assert_truthy(url_rg, 'ripgrep url')

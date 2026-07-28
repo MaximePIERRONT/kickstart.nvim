@@ -388,6 +388,7 @@ do
       { '<leader>j', group = '[J]ava test (Maven)' },
       { '<leader>g', group = '[G]it TUI (LazyGit)' },
       { '<leader>l', group = '[L]azyDocker' },
+      { '<leader>d', group = '[D]atabase (Rainfrog)' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
   }
@@ -1147,7 +1148,7 @@ do
   --
   --  Runners projets (npm + Maven / Micronaut) : `lua/custom/plugins/runners.lua`
   --  Maven tests (class / method / all) : `lua/custom/plugins/maven-tests.lua`
-  --  LazyGit / LazyDocker (+ ensure_tool auto-install) : `lua/custom/plugins/lazy-tui.lua`
+  --  LazyGit / LazyDocker / Rainfrog (+ ensure_tool auto-install) : `lua/custom/plugins/lazy-tui.lua`
   require 'custom.plugins'
 end
 

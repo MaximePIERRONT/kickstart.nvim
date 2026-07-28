@@ -1,4 +1,4 @@
--- E2E: auto-install managed CLIs (ripgrep, fd, lazygit, lazydocker, maven) headless.
+-- E2E: auto-install managed CLIs (ripgrep, fd, lazygit, lazydocker, rainfrog, maven) headless.
 -- Node/JDK are large; we still verify URL helpers + install of smaller tools.
 local harness = dofile(vim.fn.getcwd() .. '/.github/workflows/tests/harness.lua')
 local repo = harness.repo_root()
@@ -42,6 +42,12 @@ if ver_ld.code ~= 0 then ver_ld = vim.system({ path_ld, '-v' }, { text = true })
 harness.assert_eq(ver_ld.code, 0, 'lazydocker version')
 harness.ok('lazydocker installed: ' .. path_ld)
 
+local ok_rf, path_rf = ensure.ensure_rainfrog()
+assert_tool(ok_rf, path_rf, 'rainfrog')
+local ver_rf = vim.system({ path_rf, '--version' }, { text = true }):wait()
+harness.assert_eq(ver_rf.code, 0, 'rainfrog --version')
+harness.ok('rainfrog installed: ' .. path_rf)
+
 local ok_mvn, path_mvn = ensure.ensure_maven()
 assert_tool(ok_mvn, path_mvn, 'maven')
 harness.ok('maven installed: ' .. path_mvn)
@@ -51,13 +57,17 @@ require 'custom.plugins.lazy-tui'
 require 'custom.plugins.ensure'
 harness.assert_truthy(harness.command_exists 'LazyGit', ':LazyGit')
 harness.assert_truthy(harness.command_exists 'LazyDocker', ':LazyDocker')
+harness.assert_truthy(harness.command_exists 'Rainfrog', ':Rainfrog')
 harness.assert_truthy(harness.command_exists 'KickstartEnsureTools', ':KickstartEnsureTools')
 harness.assert_truthy(harness.map_exists '<leader>gg', '<leader>gg')
 harness.assert_truthy(harness.map_exists '<leader>ld', '<leader>ld')
+harness.assert_truthy(harness.map_exists '<leader>db', '<leader>db')
 
 local tui = require 'custom.plugins.lazy-tui'
 local ok_open = pcall(tui.open_lazygit)
 harness.assert_truthy(ok_open, 'open_lazygit headless')
+local ok_open_rf = pcall(tui.open_rainfrog)
+harness.assert_truthy(ok_open_rf, 'open_rainfrog headless')
 harness.ok 'lazy-tui headless open'
 
 harness.ok 'ensure_tool / lazy-tui e2e'
