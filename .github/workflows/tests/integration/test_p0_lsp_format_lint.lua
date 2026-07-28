@@ -53,18 +53,20 @@ end, 'jdtls attach')
 harness.ok 'jdtls LSP attached'
 
 -- Format-on-demand via jdtls with the repository Eclipse profile.
-local fmt_file = repo .. '/fixtures/samples/java/FormatMe.java'
-local scratch = vim.fn.tempname() .. '.java'
-vim.fn.writefile(vim.fn.readfile(fmt_file), scratch)
-pcall(vim.cmd, 'edit! ' .. vim.fn.fnameescape(scratch))
-vim.bo.filetype = 'java'
+vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+  'package com.example.domain;',
+  '',
+  'public final class FormattingFixture {',
+  'public static int add(int a,int b){return a+b;}',
+  '}',
+})
 local before = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
 local fmt_ok, fmt_err = pcall(function()
-  require('conform').format { async = false, lsp_fallback = false }
+  require('conform').format { async = false, lsp_format = 'prefer' }
 end)
 harness.assert_truthy(fmt_ok, 'conform format java: ' .. tostring(fmt_err))
 local after = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
-harness.assert_truthy(after ~= before or after:find 'int add%(int a, int b%)', 'java file formatted')
+harness.assert_truthy(after ~= before and after:find('int add%(int a, int b%)'), 'java file formatted')
 harness.ok 'conform jdtls Eclipse format'
 
 -- Google Java Format remains selectable without changing the default.
