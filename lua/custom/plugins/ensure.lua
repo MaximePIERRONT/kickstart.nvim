@@ -2,7 +2,7 @@
 local ensure = require 'custom.ensure_tool'
 
 vim.api.nvim_create_user_command('KickstartEnsureTools', function()
-  vim.notify('Ensuring managed tools (Node, JDK, rg, fd, Maven, LazyGit, LazyDocker)…', vim.log.levels.INFO)
+  vim.notify('Ensuring managed tools (Node, JDK, rg, fd, Maven, LazyGit, LazyDocker, LazySQL)…', vim.log.levels.INFO)
   local results = ensure.ensure_all()
   local lines = {}
   for name, pair in pairs(results) do
@@ -11,9 +11,9 @@ vim.api.nvim_create_user_command('KickstartEnsureTools', function()
   end
   table.sort(lines)
   vim.notify(table.concat(lines, '\n'), vim.log.levels.INFO)
-end, { desc = 'Download missing tools into stdpath data (Node, JDK, rg, fd, Maven, LazyGit, LazyDocker)' })
+end, { desc = 'Download missing tools into stdpath data (Node, JDK, rg, fd, Maven, LazyGit, LazyDocker, LazySQL)' })
 
--- Warm remaining tools after UI is ready (Maven / LazyGit / …). Node+JDK+rg+fd
+-- Warm remaining tools after UI is ready (Maven / LazyGit / LazySQL / …). Node+JDK+rg+fd
 -- already run sync before Mason in init.lua.
 vim.api.nvim_create_autocmd('VimEnter', {
   group = vim.api.nvim_create_augroup('kickstart-ensure-tools', { clear = true }),

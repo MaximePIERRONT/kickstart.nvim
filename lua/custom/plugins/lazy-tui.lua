@@ -1,4 +1,4 @@
--- LazyGit + LazyDocker in a floating terminal (roadmap P2).
+-- LazyGit + LazyDocker + LazySQL in a floating terminal (roadmap P2).
 -- Binaries auto-install via custom.ensure_tool when missing (GitHub releases).
 
 local ensure = require 'custom.ensure_tool'
@@ -24,8 +24,11 @@ local function open_float_term(cmd, cwd, title)
   if #vim.api.nvim_list_uis() == 0 then
     local result = vim.system({ cmd, '--version' }, { cwd = cwd, text = true }):wait()
     if result.code ~= 0 then
-      -- lazydocker may use different flags
+      -- lazydocker may use -v; lazysql uses -version
       result = vim.system({ cmd, '-v' }, { cwd = cwd, text = true }):wait()
+    end
+    if result.code ~= 0 then
+      result = vim.system({ cmd, '-version' }, { cwd = cwd, text = true }):wait()
     end
     if result.code ~= 0 then error(title .. ' failed to run: ' .. (result.stderr or result.stdout or '')) end
     vim.notify(title .. ' OK (headless)', vim.log.levels.INFO)
@@ -71,7 +74,7 @@ local function open_float_term(cmd, cwd, title)
   end, { buffer = buf, silent = true, desc = 'Close ' .. title })
 end
 
----@param tool 'lazygit'|'lazydocker'
+---@param tool 'lazygit'|'lazydocker'|'lazysql'
 ---@param title string
 ---@param cwd string|nil
 local function open_tool(tool, title, cwd)
@@ -91,10 +94,16 @@ function M.open_lazydocker()
   open_tool('lazydocker', 'LazyDocker', vim.uv.cwd())
 end
 
+function M.open_lazysql()
+  open_tool('lazysql', 'LazySQL', vim.uv.cwd())
+end
+
 vim.api.nvim_create_user_command('LazyGit', function() M.open_lazygit() end, { desc = 'Open LazyGit (auto-install if missing)' })
 vim.api.nvim_create_user_command('LazyDocker', function() M.open_lazydocker() end, { desc = 'Open LazyDocker (auto-install if missing)' })
+vim.api.nvim_create_user_command('LazySQL', function() M.open_lazysql() end, { desc = 'Open LazySQL (auto-install if missing)' })
 
 vim.keymap.set('n', '<leader>gg', function() M.open_lazygit() end, { desc = 'Open Lazy[G]it', silent = true })
 vim.keymap.set('n', '<leader>ld', function() M.open_lazydocker() end, { desc = 'Open [L]azy[D]ocker', silent = true })
+vim.keymap.set('n', '<leader>ls', function() M.open_lazysql() end, { desc = 'Open [L]azy[S]QL', silent = true })
 
 return M
