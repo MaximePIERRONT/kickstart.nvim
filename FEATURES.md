@@ -30,8 +30,8 @@ Légende du statut :
 | --- | --- | --- |
 | LSP | [x] | Mason + LSP : `jdtls` (JDK 21 via `JDTLS_JAVA_HOME`), `vtsls` + `vue_ls`, HTML/CSS/JSON/YAML/Bash/XML |
 | Autocompletion | [x] | `blink.cmp` + LuaSnip déjà en place |
-| Formatage | [x] | `conform.nvim` : prettier (web), stylua, shfmt, **google-java-format** (style Google, pas AOSP) + format on save |
-| Linter | [x] | `nvim-lint` : eslint_d, shellcheck, markdownlint, checkstyle |
+| Formatage | [x] | `conform.nvim` : prettier / stylua / shfmt + **Java** : Eclipse (profil Default, 4 espaces) par défaut via jdtls ; **Google Java Format** si détecté ou choisi (`:JavaFormatStyle` / `<leader>fS`) + format on save |
+| Linter | [x] | `nvim-lint` : eslint_d, shellcheck, markdownlint, checkstyle (indent aligné Eclipse/Google) |
 
 **Critère de done P0 :** ouvrir un fichier `.java`, `.vue`, `.ts` et avoir LSP + completion + format + lint utilisables.
 
@@ -117,14 +117,14 @@ Suite CI : `.github/workflows/features-ci.yml`
 
 | Couche | Ce qui est vérifié |
 | --- | --- |
-| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs rg/fd/node/lazygit, PATH, paquets OS) |
+| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs rg/fd/node/lazygit, PATH, paquets OS) + `java_format` (Eclipse/Google, détection, préférence `.nvim/java-format.json`) |
 | **Unit/intégration (Java)** | `test-project` multi-module — domain / api / infrastructure (Micronaut) via `mvn verify` |
-| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker/KickstartEnsureTools), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
+| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker/KickstartEnsureTools/JavaFormatStyle), Mason P0/P2, jdtls attach + Eclipse format settings, format java (Google) / ts, neo-tree + gitsigns |
 | **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java, **auto-install rg/fd/LazyGit/LazyDocker/Maven** |
 
 Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 
-1. **Socle langages (P0)** — ~~Java (jdtls) + Vue/TS (vtsls) + HTML/CSS/JSON/YAML/Bash/XML + prettier / eslint / google-java-format / checkstyle~~ ✅
+1. **Socle langages (P0)** — ~~Java (jdtls) + Vue/TS (vtsls) + HTML/CSS/JSON/YAML/Bash/XML + prettier / eslint / format Java Eclipse↔Google / checkstyle~~ ✅
 2. **Navigation & Git (P1)** — ~~neo-tree + keymaps gitsigns~~ ✅
 3. **Runners projets (P1)** — ~~npm + Maven (Java / Micronaut)~~ ✅
 4. **Debug & Tests (P2)** — ~~DAP + keymaps `mvn test` (setup auto via Mason)~~ ✅

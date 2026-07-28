@@ -73,6 +73,7 @@ Everything else is auto-installed:
 - **At Neovim startup (sync, before Mason):** Node.js LTS, JDK 21, ripgrep, fd → `~/.local/share/nvim/kickstart-tools`
 - **At startup (Mason):** LSP servers, formatters, linters, DAP adapters, `tree-sitter-cli`
 - **Warm / on demand:** Maven, LazyGit, LazyDocker (`:KickstartEnsureTools` forces all)
+- **Java format style:** Eclipse profile (`config/formatter/eclipse-java.xml`) by default via jdtls; switch to Google Java Format with `:JavaFormatStyle` / `<leader>fS` (`auto` | `eclipse` | `google`). Preference is saved in `<project>/.nvim/java-format.json`.
 
 Still useful from the OS if you prefer system packages instead of auto-download:
 

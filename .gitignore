@@ -16,6 +16,8 @@ nvim-pack-lock.json
 # Demo multi-module Maven project build output
 test-project/**/target/
 test-project/**/.nvim/
+# Per-project Neovim prefs (runners, java-format style, …)
+.nvim/
 # Eclipse / jdtls generated metadata
 test-project/**/.project
 test-project/**/.classpath

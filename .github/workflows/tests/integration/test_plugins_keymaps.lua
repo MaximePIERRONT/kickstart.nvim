@@ -42,11 +42,15 @@ for _, item in ipairs(expected_maps) do
   harness.ok('keymap ' .. item[1])
 end
 
-local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'KickstartEnsureTools' }
+local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'KickstartEnsureTools', 'JavaFormatStyle' }
 for _, name in ipairs(commands) do
   if not harness.command_exists(name) then harness.fail('missing command :' .. name) end
   harness.ok('command :' .. name)
 end
+
+-- Format style keymap
+if not harness.map_exists '<leader>fS' then harness.fail 'missing keymap <leader>fS (Java format style)' end
+harness.ok 'keymap <leader>fS'
 
 harness.ok 'keymaps + commands integration'
 vim.cmd 'qa!'

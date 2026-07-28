@@ -3,7 +3,7 @@ name: Features — unit / integration / e2e
 on:
   pull_request:
   push:
-    branches: [master, cursor/from-upstream-master-c628, cursor/debug-tests-p2-7edb, cursor/lazygit-lazydocker-autoinstall-1234, cursor/easy-install-ubuntu-arch-dd26]
+    branches: [master, cursor/from-upstream-master-c628, cursor/debug-tests-p2-7edb, cursor/lazygit-lazydocker-autoinstall-1234, cursor/easy-install-ubuntu-arch-dd26, cursor/java-format-style-75da]
 
 concurrency:
   group: features-ci-${{ github.workflow }}-${{ github.ref }}
@@ -55,6 +55,8 @@ jobs:
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_runners.lua"
       - name: Unit — ensure_tool
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_ensure_tool.lua"
+      - name: Unit — java_format
+        run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_java_format.lua"
 
   # ---------------------------------------------------------------------------
   # Shared Neovim bootstrap used by integration + e2e

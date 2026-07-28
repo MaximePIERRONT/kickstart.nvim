@@ -252,15 +252,22 @@ do
     callback = function() vim.hl.on_yank() end,
   })
 
+  -- Java indent follows the resolved format style (Eclipse=4 / Google=2).
+  -- Preference + detection live in custom.java_format; picker :JavaFormatStyle / <leader>fS.
   vim.api.nvim_create_autocmd('FileType', {
-    desc = 'Match Google Java Format indentation defaults',
+    desc = 'Java indent from Eclipse/Google format style',
     pattern = 'java',
     group = vim.api.nvim_create_augroup('kickstart-java-indent', { clear = true }),
-    callback = function()
-      vim.bo.expandtab = true
-      vim.bo.tabstop = 2
-      vim.bo.shiftwidth = 2
-      vim.bo.softtabstop = 2
+    callback = function(ev)
+      local ok, jf = pcall(require, 'custom.java_format')
+      if ok then
+        jf.apply_buffer_indent(ev.buf)
+      else
+        vim.bo[ev.buf].expandtab = true
+        vim.bo[ev.buf].tabstop = 4
+        vim.bo[ev.buf].shiftwidth = 4
+        vim.bo[ev.buf].softtabstop = 4
+      end
     end,
   })
 end
@@ -822,10 +829,19 @@ do
   local jdtls_java, jdtls_error = jdtls_java_executable()
   local jdtls_java_version = java_major_version(jdtls_java)
   if jdtls_java_version and jdtls_java_version >= 21 then
+    local java_format = require 'custom.java_format'
     servers.jdtls = {
       cmd = { 'jdtls', '--java-executable', jdtls_java },
       init_options = {
         bundles = java_debug_bundles(),
+      },
+      -- Eclipse CodeFormatterProfile (config/formatter/eclipse-java.xml) — used when
+      -- format style is eclipse (default / auto without Google). Google style uses
+      -- google-java-format via conform instead.
+      settings = {
+        java = {
+          format = java_format.jdtls_format_settings(),
+        },
       },
     }
   else
@@ -895,6 +911,8 @@ end
 do
   -- [[ Formatting ]]
   vim.pack.add { gh 'stevearc/conform.nvim' }
+  local java_format = require 'custom.java_format'
+
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
@@ -937,7 +955,9 @@ do
       markdown = { 'prettier' },
       sh = { 'shfmt' },
       bash = { 'shfmt' },
-      java = { 'google-java-format' },
+      -- Eclipse (jdtls LSP) by default; google-java-format when style resolves to google.
+      -- Switch with :JavaFormatStyle / <leader>fS (auto | eclipse | google).
+      java = function(bufnr) return java_format.conform_formatters(bufnr) end,
     },
   }
 
@@ -953,7 +973,9 @@ do
   vim.pack.add { gh 'mfussenegger/nvim-lint' }
 
   local lint = require 'lint'
-  require('lint.linters.checkstyle').config_file = vim.fs.joinpath(vim.fn.stdpath 'config', 'config', 'checkstyle', 'java-indent.xml')
+  local java_format = require 'custom.java_format'
+  -- Default checkstyle Indentation matches Eclipse (4 spaces); switches with :JavaFormatStyle.
+  require('lint.linters.checkstyle').config_file = java_format.checkstyle_config_path(select(1, java_format.resolve()))
 
   lint.linters_by_ft = {
     javascript = { 'eslint_d' },
@@ -1148,6 +1170,7 @@ do
   --  Runners projets (npm + Maven / Micronaut) : `lua/custom/plugins/runners.lua`
   --  Maven tests (class / method / all) : `lua/custom/plugins/maven-tests.lua`
   --  LazyGit / LazyDocker (+ ensure_tool auto-install) : `lua/custom/plugins/lazy-tui.lua`
+  --  Java format style (Eclipse / Google / Auto) : `lua/custom/plugins/java-format.lua`
   require 'custom.plugins'
 end
 
