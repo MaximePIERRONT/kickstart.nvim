@@ -614,9 +614,7 @@ function M.ensure_fd()
 end
 
 ---Ensure LazySQL for browsing PostgreSQL, MySQL, SQLite, and SQL Server databases.
-function M.ensure_lazysql()
-  return ensure_github_cli('lazysql', 'lazysql', 'jorgerojas26/lazysql', M.lazysql_asset_url)
-end
+function M.ensure_lazysql() return ensure_github_cli('lazysql', 'lazysql', 'jorgerojas26/lazysql', M.lazysql_asset_url) end
 
 ---Resolve Node.js dist archive URL for current OS/arch (LTS).
 ---@param version string e.g. v24.18.0

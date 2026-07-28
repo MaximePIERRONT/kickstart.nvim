@@ -91,9 +91,7 @@ function M.open_lazydocker()
   open_tool('lazydocker', 'LazyDocker', vim.uv.cwd())
 end
 
-function M.open_lazysql()
-  open_tool('lazysql', 'LazySQL', vim.uv.cwd())
-end
+function M.open_lazysql() open_tool('lazysql', 'LazySQL', vim.uv.cwd()) end
 
 vim.api.nvim_create_user_command('LazyGit', function() M.open_lazygit() end, { desc = 'Open LazyGit (auto-install if missing)' })
 vim.api.nvim_create_user_command('LazyDocker', function() M.open_lazydocker() end, { desc = 'Open LazyDocker (auto-install if missing)' })
