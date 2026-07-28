@@ -1,5 +1,5 @@
 -- Auto-install missing CLI / runtime deps into stdpath('data')/kickstart-tools.
--- Used for Node.js, ripgrep, fd, LazyGit, LazyDocker, JDK 21 (jdtls), and Maven —
+-- Used for Node.js, ripgrep, fd, LazyGit, LazyDocker, LazySQL, JDK 21 (jdtls), and Maven —
 -- same idea as Mason for LSPs. Designed so Ubuntu/Arch only need a few OS packages.
 
 local M = {}
@@ -521,6 +521,20 @@ function M.fd_asset_url(tag)
   return string.format('https://github.com/sharkdp/fd/releases/download/%s/%s', version, asset), nil
 end
 
+---Build LazySQL GitHub release asset URL.
+---@param tag string e.g. v0.5.5
+---@return string|nil url
+---@return string|nil err
+function M.lazysql_asset_url(tag)
+  local sys, arch = M.os_arch()
+  local os_part = ({ linux = 'Linux', darwin = 'Darwin', windows = 'Windows' })[sys]
+  if not os_part then return nil, 'unsupported OS for lazysql: ' .. sys end
+  if arch ~= 'x86_64' and arch ~= 'arm64' and arch ~= 'i386' then return nil, 'unsupported arch for lazysql: ' .. arch end
+  local ext = sys == 'windows' and 'zip' or 'tar.gz'
+  local asset = string.format('lazysql_%s_%s.%s', os_part, arch, ext)
+  return string.format('https://github.com/jorgerojas26/lazysql/releases/download/%s/%s', tag, asset), nil
+end
+
 ---@param tool string display / INSTALLING key
 ---@param exe string binary name on PATH
 ---@param repo string owner/name
@@ -597,6 +611,11 @@ function M.ensure_fd()
     return true, M.find_executable 'fd' or fdfind
   end
   return ensure_github_cli('fd', 'fd', 'sharkdp/fd', M.fd_asset_url)
+end
+
+---Ensure LazySQL for browsing PostgreSQL, MySQL, SQLite, and SQL Server databases.
+function M.ensure_lazysql()
+  return ensure_github_cli('lazysql', 'lazysql', 'jorgerojas26/lazysql', M.lazysql_asset_url)
 end
 
 ---Resolve Node.js dist archive URL for current OS/arch (LTS).
@@ -742,6 +761,7 @@ function M.ensure_common_async()
   vim.schedule(function()
     pcall(M.ensure_lazygit)
     pcall(M.ensure_lazydocker)
+    pcall(M.ensure_lazysql)
     pcall(M.ensure_maven)
     pcall(M.ensure_ripgrep)
     pcall(M.ensure_fd)
@@ -761,6 +781,7 @@ function M.ensure_all()
     maven = { M.ensure_maven() },
     lazygit = { M.ensure_lazygit() },
     lazydocker = { M.ensure_lazydocker() },
+    lazysql = { M.ensure_lazysql() },
   }
   return results
 end

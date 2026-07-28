@@ -26,6 +26,13 @@ if sys == 'linux' and arch == 'x86_64' then
 end
 harness.ok 'lazydocker asset url'
 
+local url_lsql = select(1, ensure.lazysql_asset_url 'v0.5.5')
+harness.assert_truthy(url_lsql, 'lazysql url')
+if sys == 'linux' and arch == 'x86_64' then
+  harness.assert_has(url_lsql, 'lazysql_Linux_x86_64.tar.gz', 'lazysql linux asset')
+end
+harness.ok 'lazysql asset url'
+
 -- ripgrep / fd / node asset URLs (linux x86_64)
 local url_rg = select(1, ensure.ripgrep_asset_url '15.2.0')
 harness.assert_truthy(url_rg, 'ripgrep url')

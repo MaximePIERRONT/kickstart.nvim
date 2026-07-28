@@ -14,7 +14,7 @@ A starting point for Neovim that is:
 
 ### Install facile — Ubuntu / Arch (recommandé)
 
-Sur Ubuntu ou Arch, seuls quelques paquets système sont nécessaires. **Node, JDK 21, Maven, ripgrep, fd, LazyGit, LazyDocker** et les outils LSP/format/DAP s’installent **au démarrage de Neovim** (ou via Mason / `:KickstartEnsureTools`).
+Sur Ubuntu ou Arch, seuls quelques paquets système sont nécessaires. **Node, JDK 21, Maven, ripgrep, fd, LazyGit, LazyDocker, LazySQL** et les outils LSP/format/DAP s’installent **au démarrage de Neovim** (ou via Mason / `:KickstartEnsureTools`).
 
 <details><summary>Ubuntu</summary>
 
@@ -72,7 +72,7 @@ Everything else is auto-installed:
 
 - **At Neovim startup (sync, before Mason):** Node.js LTS, JDK 21, ripgrep, fd → `~/.local/share/nvim/kickstart-tools`
 - **At startup (Mason):** LSP servers, formatters, linters, DAP adapters, `tree-sitter-cli`
-- **Warm / on demand:** Maven, LazyGit, LazyDocker (`:KickstartEnsureTools` forces all)
+- **Warm / on demand:** Maven, LazyGit, LazyDocker, LazySQL (`:KickstartEnsureTools` forces all)
 
 Still useful from the OS if you prefer system packages instead of auto-download:
 
@@ -167,6 +167,13 @@ examples of adding popularly requested plugins.
 
 
 ### Getting Started
+
+#### Browse a database in the terminal
+
+Run `:LazySQL` or press `<leader>ls`. The first launch auto-installs
+[LazySQL](https://github.com/jorgerojas26/lazysql), then opens its connection
+manager in a floating terminal. PostgreSQL, MySQL/MariaDB, SQLite and SQL Server
+are supported.
 
 [The Only Video You Need to Get Started with Neovim](https://youtu.be/m8C0Cq9Uv9o)
 
@@ -279,7 +286,7 @@ sudo add-apt-repository ppa:neovim-ppa/unstable -y
 sudo apt update && sudo apt install -y neovim
 ```
 
-Node, JDK, Maven, ripgrep, fd, LazyGit, LazyDocker + Mason tools install on first `nvim`.
+Node, JDK, Maven, ripgrep, fd, LazyGit, LazyDocker, LazySQL + Mason tools install on first `nvim`.
 </details>
 <details><summary>Debian Install Steps</summary>
 
@@ -311,7 +318,7 @@ sudo dnf install -y gcc make git ripgrep fd-find tree-sitter-cli unzip neovim
 sudo pacman -S --noconfirm --needed git curl unzip tar gzip xz base-devel neovim xclip
 ```
 
-Node, JDK, Maven, ripgrep, fd, LazyGit, LazyDocker + Mason tools install on first `nvim`.
+Node, JDK, Maven, ripgrep, fd, LazyGit, LazyDocker, LazySQL + Mason tools install on first `nvim`.
 </details>
 
 ### Alternative neovim installation methods
