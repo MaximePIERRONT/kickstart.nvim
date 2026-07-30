@@ -303,18 +303,39 @@ function M.java_major_version(java_bin)
   return tonumber(major:match '^(%d+)')
 end
 
+---Find an existing JDK suitable for jdtls without reinstalling the managed JDK.
+---@return string|nil java_home
+function M.resolve_jdk21_home()
+  -- Keep an explicit jdtls choice first, but prefer the managed JDK over an
+  -- older JAVA_HOME. JAVA_HOME often deliberately points to a project's JDK.
+  local candidates = {}
+  if vim.env.JDTLS_JAVA_HOME and vim.env.JDTLS_JAVA_HOME ~= '' then
+    table.insert(candidates, vim.env.JDTLS_JAVA_HOME)
+  end
+  table.insert(candidates, vim.fs.joinpath(M.tools_root(), 'jdk-21'))
+  if vim.env.JAVA_HOME and vim.env.JAVA_HOME ~= '' then table.insert(candidates, vim.env.JAVA_HOME) end
+  local checked = {}
+  for _, home in ipairs(candidates) do
+    if not checked[home] then
+      checked[home] = true
+      local java = vim.fs.joinpath(home, 'bin', 'java')
+      if vim.uv.fs_stat(java) then
+        local major = M.java_major_version(java)
+        if major and major >= 21 then return home end
+      end
+    end
+  end
+  return nil
+end
+
 ---Ensure a JDK 21+ is available; sets JDTLS_JAVA_HOME when installing/managed.
 ---@return boolean ok
 ---@return string|nil java_home_or_err
 function M.ensure_jdk21()
-  local home = M.existing_jdk_home()
+  local home = M.resolve_jdk21_home()
   if home then
-    local java = vim.fs.joinpath(home, 'bin', 'java')
-    local major = M.java_major_version(java)
-    if major and major >= 21 then
-      vim.env.JDTLS_JAVA_HOME = home
-      return true, home
-    end
+    vim.env.JDTLS_JAVA_HOME = home
+    return true, home
   end
 
   if INSTALLING.jdk21 then return false, 'JDK 21 install already in progress' end
