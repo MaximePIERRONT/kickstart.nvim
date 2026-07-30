@@ -66,8 +66,9 @@ Légende du statut :
 | Debug | [x] | `kickstart.plugins.debug` : DAP UI + **js-debug-adapter** + **java-debug-adapter** (bundles jdtls) ; F5/F1–F3/F7, `<leader>b`/`B` ; smoke CI `test-dap-smoke.lua` |
 | Tests | [x] | Keymaps Maven multi-module : `<leader>jt` / `jm` / `ja` + `:MavenTest` → `mvn -pl :<module> -am` (pas de neotest) ; CI dans `.github/workflows/java-dap-ci.yml` |
 | Snippets | [~] | LuaSnip OK ; `friendly-snippets` encore commenté |
-| LazyGit dans l’interface Neovim | [x] | `<leader>gg` / `:LazyGit` — terminal flottant ; **auto-install** binaire via `custom.ensure_tool` (GitHub releases) |
-| LazyDocker dans l’interface Neovim | [x] | `<leader>ld` / `:LazyDocker` — idem auto-install |
+| Onglets Neovim | [x] | `<leader>tn` ouvre un nouvel onglet ; `gt` / `gT` passent à l’onglet suivant / précédent |
+| LazyGit dans l’interface Neovim | [x] | `<leader>gg` / `:LazyGit` — terminal flottant ; `<leader>gG` / `:LazyGitFullscreen` — nouvel onglet plein écran ; **auto-install** binaire via `custom.ensure_tool` (GitHub releases) |
+| LazyDocker dans l’interface Neovim | [x] | `<leader>ld` / `:LazyDocker` — terminal flottant ; `<leader>lF` / `:LazyDockerFullscreen` — nouvel onglet plein écran ; idem auto-install |
 | LazySQL dans l’interface Neovim | [x] | `<leader>ls` / `:LazySQL` — explorateur SQL TUI ; idem auto-install |
 
 **Critère de done P2 :** debugger + tests Maven + LazyGit / LazyDocker / LazySQL ✅ (snippets optionnels).
@@ -99,8 +100,8 @@ Quand un outil manque, la config le télécharge dans `stdpath('data')/kickstart
 | **ripgrep** (`rg`) | sync startup + warm | GitHub releases |
 | **fd** | sync startup + warm | GitHub releases |
 | **Maven** (`mvn`) | warm VimEnter / premier `:Maven` / tests | Apache Maven binary |
-| **lazygit** | warm VimEnter / `<leader>gg` | GitHub releases |
-| **lazydocker** | warm VimEnter / `<leader>ld` | GitHub releases |
+| **lazygit** | warm VimEnter / `<leader>gg` ou `<leader>gG` | GitHub releases |
+| **lazydocker** | warm VimEnter / `<leader>ld` ou `<leader>lF` | GitHub releases |
 | **lazysql** | warm VimEnter / `<leader>ls` | GitHub releases |
 | LSP / formatters / DAP / `tree-sitter-cli` | Mason (`mason-tool-installer` au démarrage) | Mason registry |
 
