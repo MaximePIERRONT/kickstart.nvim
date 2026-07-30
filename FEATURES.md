@@ -48,7 +48,7 @@ Légende du statut :
 
 | Feature | Statut | Notes |
 | --- | --- | --- |
-| Navigation projet | [x] | Telescope + **neo-tree** (`\` / `<leader>e`, suivi du fichier courant) |
+| Navigation projet | [x] | Telescope + **neo-tree** (`\` / `<leader>e`, suivi du fichier courant) ; **`<leader>t`** toggle source ↔ test (Java + TS/JS, style IntelliJ Ctrl+Shift+T) |
 | Recherche fuzzy finder | [x] | Telescope (fichiers, grep, LSP) déjà là |
 | Git | [x] | `gitsigns` + keymaps hunks (`<leader>h…`, `]c`/`[c`) ; LazyGit en P2 |
 | Lancer facilement un projet frontend avec npm | [x] | `<leader>rd/rb/rt/rs` + `:Npm` — terminal split, racine via `package.json` |

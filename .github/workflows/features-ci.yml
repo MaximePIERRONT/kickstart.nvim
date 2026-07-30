@@ -51,6 +51,8 @@ jobs:
           sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
       - name: Unit — maven-tests
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_maven_tests.lua"
+      - name: Unit — alternate-test
+        run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_alternate_test.lua"
       - name: Unit — runners
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_runners.lua"
       - name: Unit — ensure_tool
