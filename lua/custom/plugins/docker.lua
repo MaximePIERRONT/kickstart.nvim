@@ -1,5 +1,7 @@
--- Lazydocker integration via native floating terminal
+-- Lazydocker in a floating terminal or fullscreen (Herdr tab + zoom, or Neovim tab).
 -- Requires: lazydocker (https://github.com/jesseduffield/lazydocker)
+
+local tui = require 'custom.tui'
 
 local state = {
   buf = nil,
@@ -24,61 +26,44 @@ local function close()
   state.win = nil
 end
 
-local function open()
-  if vim.fn.executable 'lazydocker' ~= 1 then
+local function open_float()
+  if is_valid() then
+    close()
+    return
+  end
+
+  local buf, win = tui.open_float('lazydocker', vim.uv.cwd(), 'lazydocker')
+  if not buf or not win then
     vim.notify('lazydocker is not installed. Install it: https://github.com/jesseduffield/lazydocker', vim.log.levels.ERROR)
     return
   end
 
-  local width = math.floor(vim.o.columns * 0.9)
-  local height = math.floor(vim.o.lines * 0.9)
-
-  local buf = vim.api.nvim_create_buf(false, true)
-  local win = vim.api.nvim_open_win(buf, true, {
-    relative = 'editor',
-    width = width,
-    height = height,
-    col = math.floor((vim.o.columns - width) / 2),
-    row = math.floor((vim.o.lines - height) / 2),
-    style = 'minimal',
-    border = 'rounded',
-    title = ' lazydocker ',
-    title_pos = 'center',
-  })
-
   state.buf = buf
   state.win = win
 
-  vim.fn.termopen('lazydocker', {
-    on_exit = function()
-      vim.schedule(close)
-    end,
-  })
-
-  vim.cmd 'startinsert'
-
-  -- Close with q or <Esc> when not in lazydocker's own input
-  vim.api.nvim_buf_set_keymap(buf, 't', '<C-q>', '<C-\\><C-n><cmd>lua vim.api.nvim_win_close(0, true)<cr>', {
+  vim.api.nvim_buf_set_keymap(buf, 't', '<C-q>', '<C-\\><C-n><cmd>lua vim.api.nvim_win_close(0,true)<cr>', {
     noremap = true,
     silent = true,
     desc = 'Close lazydocker',
   })
 end
 
-local function toggle()
-  if is_valid() then
-    close()
-  else
-    open()
-  end
+local function open_fullscreen()
+  tui.open('lazydocker', 'lazydocker', vim.uv.cwd(), 'fullscreen')
 end
 
 return {
   {
     'lazydocker.nvim',
     virtual = true,
+    cmd = { 'LazyDocker', 'LazyDockerFullscreen' },
     keys = {
-      { '<leader>td', toggle, desc = '[T]oggle [D]ocker' },
+      { '<leader>td', open_float, desc = '[T]oggle [D]ocker (float)' },
+      { '<leader>tD', open_fullscreen, desc = 'Lazydocker fullscreen' },
     },
+    init = function()
+      vim.api.nvim_create_user_command('LazyDocker', open_float, { desc = 'Open lazydocker (floating terminal)' })
+      vim.api.nvim_create_user_command('LazyDockerFullscreen', open_fullscreen, { desc = 'Open lazydocker fullscreen (Herdr or Neovim tab)' })
+    end,
   },
 }

@@ -360,6 +360,7 @@ require('lazy').setup({
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
         { '<leader>g', group = '[G]it' },
         { '<leader>gf', group = '[F]ind' },
+        { '<leader>H', group = '[H]erdr' },
         { '<leader>j', group = '[J]ava' },
       },
     },
