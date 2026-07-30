@@ -388,6 +388,7 @@ do
       { '<leader>j', group = '[J]ava test (Maven)' },
       { '<leader>g', group = '[G]it TUI (LazyGit)' },
       { '<leader>l', group = '[L]azy TUI (Docker / SQL)' },
+      { '<leader>H', group = '[H]erdr (tab / install keys)' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
   }

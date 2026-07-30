@@ -81,6 +81,9 @@ Still useful from the OS if you prefer system packages instead of auto-download:
 - A [Nerd Font](https://www.nerdfonts.com/): optional, provides various icons
   - if you have it set `vim.g.have_nerd_font` in `init.lua` to true
 - Emoji fonts (Ubuntu only, and only if you want emoji!) `sudo apt install fonts-noto-color-emoji`
+- Optional: [Herdr](https://herdr.dev) terminal multiplexer — `:HerdrInstallConfig` installs
+  fullscreen LazyGit / LazyDocker popups (`prefix+alt+g` / `prefix+alt+d`) and a direct
+  new-tab chord (`ctrl+alt+c`). From Neovim: `<leader>Ht` / `:HerdrNewTab`.
 
 > [!NOTE]
 > See [Install Recipes](#Install-Recipes) for additional Windows and Linux specific notes

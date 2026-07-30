@@ -55,6 +55,8 @@ jobs:
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_runners.lua"
       - name: Unit — ensure_tool
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_ensure_tool.lua"
+      - name: Unit — herdr
+        run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_herdr.lua"
 
   # ---------------------------------------------------------------------------
   # Shared Neovim bootstrap used by integration + e2e

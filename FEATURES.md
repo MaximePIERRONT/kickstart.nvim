@@ -69,6 +69,7 @@ Légende du statut :
 | LazyGit dans l’interface Neovim | [x] | `<leader>gg` / `:LazyGit` — terminal flottant ; **auto-install** binaire via `custom.ensure_tool` (GitHub releases) |
 | LazyDocker dans l’interface Neovim | [x] | `<leader>ld` / `:LazyDocker` — idem auto-install |
 | LazySQL dans l’interface Neovim | [x] | `<leader>ls` / `:LazySQL` — explorateur SQL TUI ; idem auto-install |
+| Herdr — nouvel onglet + Lazy* plein écran | [x] | Config `config/herdr/config.toml` : `ctrl+alt+c` / `prefix+c` nouvel onglet ; `prefix+alt+g` LazyGit et `prefix+alt+d` LazyDocker en popup **100%** ; `:HerdrInstallConfig` / `<leader>Hi` ; nouvel onglet depuis Neovim `:HerdrNewTab` / `<leader>Ht` |
 
 **Critère de done P2 :** debugger + tests Maven + LazyGit / LazyDocker / LazySQL ✅ (snippets optionnels).
 
@@ -126,9 +127,9 @@ Suite CI : `.github/workflows/features-ci.yml`
 
 | Couche | Ce qui est vérifié |
 | --- | --- |
-| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs rg/fd/node/lazygit/lazysql, PATH, paquets OS) |
+| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs rg/fd/node/lazygit/lazysql, PATH, paquets OS) + `herdr` (config bundle, install/merge, new-tab guard) |
 | **Unit/intégration (Java)** | `test-project` multi-module — domain / api / infrastructure (Micronaut) via `mvn verify` |
-| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker/LazySQL/KickstartEnsureTools), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
+| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker/LazySQL/Herdr/KickstartEnsureTools), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
 | **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java, **auto-install rg/fd/LazyGit/LazyDocker/LazySQL/Maven** |
 
 Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.

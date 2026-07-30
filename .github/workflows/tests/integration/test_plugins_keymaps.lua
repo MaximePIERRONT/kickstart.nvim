@@ -35,6 +35,9 @@ local expected_maps = {
   { '<leader>gg', 'lazygit' },
   { '<leader>ld', 'lazydocker' },
   { '<leader>ls', 'lazysql' },
+  -- Herdr multiplexer
+  { '<leader>Ht', 'herdr new tab' },
+  { '<leader>Hi', 'herdr install config' },
 }
 
 for _, item in ipairs(expected_maps) do
@@ -44,7 +47,7 @@ for _, item in ipairs(expected_maps) do
   harness.ok('keymap ' .. item[1])
 end
 
-local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'JavaFormat', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'LazySQL', 'KickstartEnsureTools' }
+local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'JavaFormat', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'LazySQL', 'HerdrNewTab', 'HerdrInstallConfig', 'KickstartEnsureTools' }
 for _, name in ipairs(commands) do
   if not harness.command_exists(name) then harness.fail('missing command :' .. name) end
   harness.ok('command :' .. name)

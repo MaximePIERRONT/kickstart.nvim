@@ -1,0 +1,26 @@
+# Herdr keybindings shipped with kickstart.nvim
+# Install: :HerdrInstallConfig  (or symlink this file to ~/.config/herdr/config.toml)
+# Reload:  herdr server reload-config
+#
+# Default Herdr prefix is ctrl+b (tmux-style).
+# Fullscreen Lazy* popups float over the session and close when the tool exits.
+
+[keys]
+# New tab — prefix+c (Herdr default) + direct chord (no prefix)
+new_tab = ["prefix+c", "ctrl+alt+c"]
+
+[[keys.command]]
+key = "prefix+alt+g"
+type = "popup"
+command = "PATH=\"${XDG_DATA_HOME:-$HOME/.local/share}/nvim/kickstart-tools/bin:$PATH\" lazygit"
+description = "LazyGit fullscreen"
+width = "100%"
+height = "100%"
+
+[[keys.command]]
+key = "prefix+alt+d"
+type = "popup"
+command = "PATH=\"${XDG_DATA_HOME:-$HOME/.local/share}/nvim/kickstart-tools/bin:$PATH\" lazydocker"
+description = "LazyDocker fullscreen"
+width = "100%"
+height = "100%"
