@@ -75,5 +75,65 @@ harness.assert_has(joined, 'git', 'req git')
 harness.assert_has(joined, 'curl', 'req curl')
 harness.ok 'required_system_packages'
 
+-- JDK 21 reuse: old JAVA_HOME must not force a re-download when managed jdk-21 exists.
+do
+  local tmp = vim.fn.tempname()
+  local old_home = vim.fs.joinpath(tmp, 'jdk-17')
+  local managed = vim.fs.joinpath(tmp, 'kickstart-tools', 'jdk-21')
+  vim.fn.mkdir(vim.fs.joinpath(old_home, 'bin'), 'p')
+  vim.fn.mkdir(vim.fs.joinpath(managed, 'bin'), 'p')
+
+  local function write_fake_java(bin_dir, major)
+    local path = vim.fs.joinpath(bin_dir, 'java')
+    local script = table.concat({
+      '#!/bin/sh',
+      string.format('echo \'openjdk version "%s.0.2" 2024-01-16\' >&2', major),
+      'exit 0',
+      '',
+    }, '\n')
+    vim.fn.writefile(vim.split(script, '\n', { plain = true }), path)
+    vim.fn.setfperm(path, 'rwxr-xr-x')
+  end
+
+  write_fake_java(vim.fs.joinpath(old_home, 'bin'), 17)
+  write_fake_java(vim.fs.joinpath(managed, 'bin'), 21)
+
+  local prev_java_home = vim.env.JAVA_HOME
+  local prev_jdtls = vim.env.JDTLS_JAVA_HOME
+  local real_tools_root = ensure.tools_root
+  local download_calls = 0
+  local real_download = ensure.download
+
+  ensure.tools_root = function() return vim.fs.joinpath(tmp, 'kickstart-tools') end
+  ensure.download = function(...)
+    download_calls = download_calls + 1
+    return real_download(...)
+  end
+  vim.env.JAVA_HOME = old_home
+  vim.env.JDTLS_JAVA_HOME = nil
+
+  local found = ensure.existing_jdk_home()
+  harness.assert_eq(found, managed, 'existing_jdk_home prefers managed 21 over JAVA_HOME 17')
+
+  local ok, home = ensure.ensure_jdk21()
+  harness.assert_truthy(ok, 'ensure_jdk21 ok with managed JDK')
+  harness.assert_eq(home, managed, 'ensure_jdk21 returns managed JDK')
+  harness.assert_eq(download_calls, 0, 'ensure_jdk21 must not re-download JDK 21')
+  harness.assert_eq(vim.env.JDTLS_JAVA_HOME, managed, 'JDTLS_JAVA_HOME set to managed JDK')
+
+  -- Second call (simulate reopening a Java project / Neovim restart with same env)
+  ok, home = ensure.ensure_jdk21()
+  harness.assert_truthy(ok, 'ensure_jdk21 idempotent')
+  harness.assert_eq(home, managed, 'ensure_jdk21 still managed')
+  harness.assert_eq(download_calls, 0, 'second ensure_jdk21 still no download')
+
+  ensure.tools_root = real_tools_root
+  ensure.download = real_download
+  vim.env.JAVA_HOME = prev_java_home
+  vim.env.JDTLS_JAVA_HOME = prev_jdtls
+  vim.fn.delete(tmp, 'rf')
+  harness.ok 'jdk21 reuse skips reinstall when JAVA_HOME is older'
+end
+
 harness.ok 'ensure_tool unit suite'
 vim.cmd 'qa!'

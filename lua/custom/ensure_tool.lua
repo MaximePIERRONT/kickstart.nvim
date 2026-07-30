@@ -275,19 +275,34 @@ function M.ensure_jesseduffield(tool)
   return true, path
 end
 
+---@param home string|nil
+---@return boolean
+local function jdk_home_is_21_plus(home)
+  if not home or home == '' then return false end
+  local java = vim.fs.joinpath(home, 'bin', 'java')
+  if not vim.uv.fs_stat(java) then return false end
+  local major = M.java_major_version(java)
+  return major ~= nil and major >= 21
+end
+
+---Return an already-usable JDK 21+ home (env or managed). Skips older JAVA_HOME
+---so a previously installed kickstart-tools/jdk-21 is reused instead of re-downloaded.
 ---@return string|nil java_home
 function M.existing_jdk_home()
-  if vim.env.JDTLS_JAVA_HOME and vim.env.JDTLS_JAVA_HOME ~= '' then
-    local java = vim.fs.joinpath(vim.env.JDTLS_JAVA_HOME, 'bin', 'java')
-    if vim.uv.fs_stat(java) then return vim.env.JDTLS_JAVA_HOME end
+  local seen = {}
+  local candidates = {}
+  local function push(home)
+    if not home or home == '' or seen[home] then return end
+    seen[home] = true
+    table.insert(candidates, home)
   end
-  if vim.env.JAVA_HOME and vim.env.JAVA_HOME ~= '' then
-    local java = vim.fs.joinpath(vim.env.JAVA_HOME, 'bin', 'java')
-    if vim.uv.fs_stat(java) then return vim.env.JAVA_HOME end
+  push(vim.env.JDTLS_JAVA_HOME)
+  push(vim.env.JAVA_HOME)
+  push(vim.fs.joinpath(M.tools_root(), 'jdk-21'))
+
+  for _, home in ipairs(candidates) do
+    if jdk_home_is_21_plus(home) then return home end
   end
-  local managed = vim.fs.joinpath(M.tools_root(), 'jdk-21')
-  local java = vim.fs.joinpath(managed, 'bin', 'java')
-  if vim.uv.fs_stat(java) then return managed end
   return nil
 end
 
@@ -309,12 +324,8 @@ end
 function M.ensure_jdk21()
   local home = M.existing_jdk_home()
   if home then
-    local java = vim.fs.joinpath(home, 'bin', 'java')
-    local major = M.java_major_version(java)
-    if major and major >= 21 then
-      vim.env.JDTLS_JAVA_HOME = home
-      return true, home
-    end
+    vim.env.JDTLS_JAVA_HOME = home
+    return true, home
   end
 
   if INSTALLING.jdk21 then return false, 'JDK 21 install already in progress' end
