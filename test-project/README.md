@@ -19,4 +19,5 @@ mvn clean verify
 Neovim keymaps (from any module source file):
 
 - `<leader>jt` / `jm` / `ja` → `mvn -pl :<module> -am test …`
+- `<leader>jT` → bascule entre un fichier `src/main/java/.../Foo.java` et son test `src/test/java/.../FooTest.java`
 - `F5` on `infrastructure/.../DebugProbe.java` after jdtls attaches

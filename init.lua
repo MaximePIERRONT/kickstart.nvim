@@ -385,7 +385,7 @@ do
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
       { '<leader>r', group = '[R]un (npm / Maven)' },
-      { '<leader>j', group = '[J]ava test (Maven)' },
+      { '<leader>j', group = '[J]ava (tests / navigation)' },
       { '<leader>g', group = '[G]it TUI (LazyGit)' },
       { '<leader>l', group = '[L]azy TUI (Docker / SQL)' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },

@@ -12,6 +12,16 @@ harness.assert_eq(mt.class_name(domain_test), 'com.example.domain.GreetingTest',
 local infra_main = repo .. '/test-project/infrastructure/src/main/java/com/example/infrastructure/DebugProbe.java'
 harness.assert_eq(mt.class_name(infra_main), 'com.example.infrastructure.DebugProbe', 'infra main FQCN')
 
+local domain_main = repo .. '/test-project/domain/src/main/java/com/example/domain/Greeting.java'
+local test_counterpart = assert(mt.counterpart_path(domain_main))
+harness.assert_eq(test_counterpart, domain_test, 'main to test counterpart')
+local source_counterpart = assert(mt.counterpart_path(domain_test))
+harness.assert_eq(source_counterpart, domain_main, 'test to main counterpart')
+
+local missing_counterpart, counterpart_err = mt.counterpart_path(repo .. '/README.md')
+harness.assert_eq(missing_counterpart, nil, 'non-java counterpart absent')
+harness.assert_eq(counterpart_err, 'not a Java source or test file', 'non-java counterpart error')
+
 local module = mt.maven_root(vim.fs.dirname(domain_test))
 harness.assert_truthy(module and module:match 'domain$', 'domain module root')
 harness.assert_eq(mt.artifact_id(module), 'domain', 'artifactId')

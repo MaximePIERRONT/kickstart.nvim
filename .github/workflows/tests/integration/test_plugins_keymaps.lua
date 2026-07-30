@@ -22,6 +22,7 @@ local expected_maps = {
   { '<leader>jt', 'java test class' },
   { '<leader>jm', 'java test method' },
   { '<leader>ja', 'java test all' },
+  { '<leader>jT', 'java toggle source/test' },
   { '<leader>jf', 'java formatter selector' },
   -- P2 debug
   { '<leader>b', 'breakpoint' },

@@ -4,6 +4,7 @@
 --   jt  test current [t]ype / class   → mvn test -Dtest=com.example.FooTest
 --   jm  test [m]ethod under cursor    → mvn test -Dtest=com.example.FooTest#bar
 --   ja  test [a]ll in module          → mvn test
+--   jT  [T]oggle source ↔ test file   → src/main/java/Foo.java ↔ src/test/java/FooTest.java
 --
 -- Requires `mvn` on $PATH (auto-installé via custom.ensure_tool si absent).
 -- Uses the nearest pom.xml (multi-module friendly).
@@ -111,6 +112,49 @@ function M.class_name(bufpath)
     end
   end
   return vim.fn.fnamemodify(bufpath, ':t:r')
+end
+
+---@param bufpath string
+---@return string|nil
+---@return string|nil err
+function M.counterpart_path(bufpath)
+  local normalized = vim.fs.normalize(bufpath)
+  local sep = package.config:sub(1, 1)
+  local main_marker = 'src' .. sep .. 'main' .. sep .. 'java' .. sep
+  local test_marker = 'src' .. sep .. 'test' .. sep .. 'java' .. sep
+  local main_at = normalized:find(main_marker, 1, true)
+  local test_at = normalized:find(test_marker, 1, true)
+
+  if main_at then
+    local relative = normalized:sub(main_at + #main_marker)
+    local base = relative:gsub('%.java$', '')
+    if base == relative then return nil, 'not a java file' end
+    return normalized:sub(1, main_at - 1) .. test_marker .. base .. 'Test.java'
+  end
+
+  if test_at then
+    local relative = normalized:sub(test_at + #test_marker)
+    local base = relative:gsub('%.java$', '')
+    if base == relative then return nil, 'not a java file' end
+    base = base:gsub('Tests$', ''):gsub('Test$', '')
+    return normalized:sub(1, test_at - 1) .. main_marker .. base .. '.java'
+  end
+
+  return nil, 'not a Java source or test file'
+end
+
+local function toggle_source_test()
+  local source = vim.api.nvim_buf_get_name(0)
+  local counterpart, err = M.counterpart_path(source)
+  if not counterpart then
+    vim.notify(err or 'unable to find test counterpart', vim.log.levels.WARN)
+    return
+  end
+  if vim.fn.filereadable(counterpart) ~= 1 then
+    vim.notify('Fichier correspondant introuvable : ' .. counterpart, vim.log.levels.WARN)
+    return
+  end
+  vim.cmd.edit(vim.fn.fnameescape(counterpart))
 end
 
 ---@param text string
@@ -261,6 +305,7 @@ end
 vim.keymap.set('n', '<leader>jt', run_class, { desc = '[J]ava [t]est class' })
 vim.keymap.set('n', '<leader>jm', run_method, { desc = '[J]ava test [m]ethod' })
 vim.keymap.set('n', '<leader>ja', run_all, { desc = '[J]ava test [a]ll' })
+vim.keymap.set('n', '<leader>jT', toggle_source_test, { desc = '[J]ava [T]oggle source/test' })
 
 vim.api.nvim_create_user_command('MavenTest', function(opts)
   local arg = opts.args
