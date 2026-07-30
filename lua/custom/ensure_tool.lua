@@ -275,19 +275,51 @@ function M.ensure_jesseduffield(tool)
   return true, path
 end
 
----@return string|nil java_home
-function M.existing_jdk_home()
-  if vim.env.JDTLS_JAVA_HOME and vim.env.JDTLS_JAVA_HOME ~= '' then
-    local java = vim.fs.joinpath(vim.env.JDTLS_JAVA_HOME, 'bin', 'java')
-    if vim.uv.fs_stat(java) then return vim.env.JDTLS_JAVA_HOME end
-  end
-  if vim.env.JAVA_HOME and vim.env.JAVA_HOME ~= '' then
-    local java = vim.fs.joinpath(vim.env.JAVA_HOME, 'bin', 'java')
-    if vim.uv.fs_stat(java) then return vim.env.JAVA_HOME end
-  end
+---@return string|nil java_home Kickstart-managed JDK under kickstart-tools/jdk-21.
+function M.managed_jdk_home()
   local managed = vim.fs.joinpath(M.tools_root(), 'jdk-21')
   local java = vim.fs.joinpath(managed, 'bin', 'java')
   if vim.uv.fs_stat(java) then return managed end
+  return nil
+end
+
+---JDK homes to consider for jdtls, in preference order.
+---Managed JDK is checked before JAVA_HOME so a stale shell JAVA_HOME (8/11/17)
+---does not trigger a re-download on every Neovim startup.
+---@return string[]
+local function jdk_home_candidates()
+  local seen = {}
+  local candidates = {}
+  local function add(home)
+    if home and home ~= '' and not seen[home] then
+      seen[home] = true
+      table.insert(candidates, home)
+    end
+  end
+  add(vim.env.JDTLS_JAVA_HOME)
+  add(M.managed_jdk_home())
+  add(vim.env.JAVA_HOME)
+  return candidates
+end
+
+---@return string|nil java_home First JDK 21+ among known homes.
+function M.find_jdk21_home()
+  for _, home in ipairs(jdk_home_candidates()) do
+    local java = vim.fs.joinpath(home, 'bin', 'java')
+    if vim.uv.fs_stat(java) then
+      local major = M.java_major_version(java)
+      if major and major >= 21 then return home end
+    end
+  end
+  return nil
+end
+
+---@return string|nil java_home
+function M.existing_jdk_home()
+  for _, home in ipairs(jdk_home_candidates()) do
+    local java = vim.fs.joinpath(home, 'bin', 'java')
+    if vim.uv.fs_stat(java) then return home end
+  end
   return nil
 end
 
@@ -307,14 +339,10 @@ end
 ---@return boolean ok
 ---@return string|nil java_home_or_err
 function M.ensure_jdk21()
-  local home = M.existing_jdk_home()
+  local home = M.find_jdk21_home()
   if home then
-    local java = vim.fs.joinpath(home, 'bin', 'java')
-    local major = M.java_major_version(java)
-    if major and major >= 21 then
-      vim.env.JDTLS_JAVA_HOME = home
-      return true, home
-    end
+    vim.env.JDTLS_JAVA_HOME = home
+    return true, home
   end
 
   if INSTALLING.jdk21 then return false, 'JDK 21 install already in progress' end
