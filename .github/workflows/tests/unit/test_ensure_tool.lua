@@ -75,5 +75,48 @@ harness.assert_has(joined, 'git', 'req git')
 harness.assert_has(joined, 'curl', 'req curl')
 harness.ok 'required_system_packages'
 
+-- A project may intentionally set JAVA_HOME to an older JDK.  A managed JDK
+-- 21 must still be reused instead of downloading it again on every startup.
+do
+  local temp = vim.fn.tempname()
+  local old_home = vim.fs.joinpath(temp, 'java-17')
+  local managed_home = vim.fs.joinpath(temp, 'kickstart-tools', 'jdk-21')
+  vim.fn.mkdir(vim.fs.joinpath(old_home, 'bin'), 'p')
+  vim.fn.mkdir(vim.fs.joinpath(managed_home, 'bin'), 'p')
+  vim.fn.writefile({ '' }, vim.fs.joinpath(old_home, 'bin', 'java'))
+  vim.fn.writefile({ '' }, vim.fs.joinpath(managed_home, 'bin', 'java'))
+
+  local original_tools_root = ensure.tools_root
+  local original_java_major_version = ensure.java_major_version
+  local original_download = ensure.download
+  local original_java_home = vim.env.JAVA_HOME
+  local original_jdtls_java_home = vim.env.JDTLS_JAVA_HOME
+  local downloaded = false
+
+  ensure.tools_root = function() return vim.fs.joinpath(temp, 'kickstart-tools') end
+  ensure.java_major_version = function(java)
+    return java:find('/java%-17/', 1, false) and 17 or 21
+  end
+  ensure.download = function()
+    downloaded = true
+    return false, 'test download must not run'
+  end
+  vim.env.JAVA_HOME = old_home
+  vim.env.JDTLS_JAVA_HOME = nil
+
+  local ok, home = ensure.ensure_jdk21()
+  harness.assert_truthy(ok, 'reuse managed JDK 21 with older JAVA_HOME')
+  harness.assert_eq(home, managed_home, 'managed JDK selected')
+  harness.assert_truthy(not downloaded, 'managed JDK is not downloaded again')
+
+  ensure.tools_root = original_tools_root
+  ensure.java_major_version = original_java_major_version
+  ensure.download = original_download
+  vim.env.JAVA_HOME = original_java_home
+  vim.env.JDTLS_JAVA_HOME = original_jdtls_java_home
+  vim.fn.delete(temp, 'rf')
+end
+harness.ok 'managed JDK 21 reuse'
+
 harness.ok 'ensure_tool unit suite'
 vim.cmd 'qa!'
