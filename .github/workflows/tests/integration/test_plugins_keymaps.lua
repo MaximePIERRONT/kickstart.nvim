@@ -7,6 +7,7 @@ local expected_maps = {
   -- P1 navigation / git
   { '\\', 'neo-tree reveal' },
   { '<leader>e', 'neo-tree toggle' },
+  { '<leader>t', 'alternate source↔test' },
   -- P1 runners
   { '<leader>rd', 'npm dev' },
   { '<leader>rb', 'npm build' },
@@ -44,7 +45,7 @@ for _, item in ipairs(expected_maps) do
   harness.ok('keymap ' .. item[1])
 end
 
-local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'JavaFormat', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'LazySQL', 'KickstartEnsureTools' }
+local commands = { 'Npm', 'Maven', 'Micronaut', 'RunConfig', 'MavenTest', 'JavaFormat', 'Neotree', 'Telescope', 'LazyGit', 'LazyDocker', 'LazySQL', 'KickstartEnsureTools', 'AlternateTest' }
 for _, name in ipairs(commands) do
   if not harness.command_exists(name) then harness.fail('missing command :' .. name) end
   harness.ok('command :' .. name)

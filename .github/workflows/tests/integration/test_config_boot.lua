@@ -15,6 +15,7 @@ harness.require_ok 'which-key'
 harness.require_ok 'mason'
 harness.require_ok 'custom.plugins.runners'
 harness.require_ok 'custom.plugins.maven-tests'
+harness.require_ok 'custom.plugins.alternate-test'
 
 harness.ok 'config boot + core modules'
 vim.cmd 'qa!'
