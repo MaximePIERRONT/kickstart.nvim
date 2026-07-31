@@ -7,16 +7,5 @@ local function create_tab()
   if not ok then vim.notify('Herdr tab: ' .. (err or 'échec'), vim.log.levels.ERROR) end
 end
 
-return {
-  {
-    'herdr.nvim',
-    virtual = true,
-    cmd = { 'HerdrTab' },
-    keys = {
-      { '<leader>Ht', create_tab, desc = 'Herdr new [T]ab' },
-    },
-    init = function()
-      vim.api.nvim_create_user_command('HerdrTab', create_tab, { desc = 'Create a new Herdr tab (focused)' })
-    end,
-  },
-}
+vim.api.nvim_create_user_command('HerdrTab', create_tab, { desc = 'Create a new Herdr tab (focused)' })
+vim.keymap.set('n', '<leader>Ht', create_tab, { desc = 'Herdr new [T]ab', silent = true })
