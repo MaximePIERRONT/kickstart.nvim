@@ -6,6 +6,7 @@ vim.opt.runtimepath:prepend(repo)
 
 package.loaded['custom.ensure_tool'] = nil
 package.loaded['custom.plugins.lazy-tui'] = nil
+package.loaded['custom.plugins.herdr'] = nil
 package.loaded['custom.plugins.ensure'] = nil
 
 local ensure = require 'custom.ensure_tool'
@@ -54,18 +55,27 @@ harness.ok('maven installed: ' .. path_mvn)
 
 -- Plugin commands / keymaps
 require 'custom.plugins.lazy-tui'
+require 'custom.plugins.herdr'
 require 'custom.plugins.ensure'
 harness.assert_truthy(harness.command_exists 'LazyGit', ':LazyGit')
 harness.assert_truthy(harness.command_exists 'LazyDocker', ':LazyDocker')
 harness.assert_truthy(harness.command_exists 'LazySQL', ':LazySQL')
+harness.assert_truthy(harness.command_exists 'LazyGitFullscreen', ':LazyGitFullscreen')
+harness.assert_truthy(harness.command_exists 'LazyDockerFullscreen', ':LazyDockerFullscreen')
+harness.assert_truthy(harness.command_exists 'HerdrTab', ':HerdrTab')
 harness.assert_truthy(harness.command_exists 'KickstartEnsureTools', ':KickstartEnsureTools')
 harness.assert_truthy(harness.map_exists '<leader>gg', '<leader>gg')
+harness.assert_truthy(harness.map_exists '<leader>gG', '<leader>gG')
 harness.assert_truthy(harness.map_exists '<leader>ld', '<leader>ld')
+harness.assert_truthy(harness.map_exists '<leader>lD', '<leader>lD')
 harness.assert_truthy(harness.map_exists '<leader>ls', '<leader>ls')
+harness.assert_truthy(harness.map_exists '<leader>Ht', '<leader>Ht')
 
 local tui = require 'custom.plugins.lazy-tui'
 local ok_open = pcall(tui.open_lazygit)
 harness.assert_truthy(ok_open, 'open_lazygit headless')
+local ok_open_fs = pcall(tui.open_lazygit_fullscreen)
+harness.assert_truthy(ok_open_fs, 'open_lazygit_fullscreen headless')
 local ok_open_sql = pcall(tui.open_lazysql)
 harness.assert_truthy(ok_open_sql, 'open_lazysql headless')
 harness.ok 'lazy-tui headless open'
