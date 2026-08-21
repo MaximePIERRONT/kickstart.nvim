@@ -5,7 +5,7 @@
 local mr = require 'custom.merge_request'
 
 vim.pack.add {
-  { src = 'https://github.com/sindrets/diffview.nvim', version = vim.version.range '*' },
+  { src = 'https://github.com/sindrets/diffview.nvim', version = 'main' },
 }
 
 require('diffview').setup {
