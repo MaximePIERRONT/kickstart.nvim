@@ -57,6 +57,8 @@ jobs:
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_runners.lua"
       - name: Unit — ensure_tool
         run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_ensure_tool.lua"
+      - name: Unit — merge_request
+        run: nvim --headless -u NONE -c "luafile .github/workflows/tests/unit/test_merge_request.lua"
 
   # ---------------------------------------------------------------------------
   # Shared Neovim bootstrap used by integration + e2e
@@ -195,3 +197,6 @@ jobs:
       - name: E2E — LazyGit / LazyDocker / LazySQL auto-install
         run: |
           nvim --headless -u NONE -c "luafile .github/workflows/tests/e2e/test_lazy_tui_e2e.lua"
+      - name: E2E — Merge request review checkout
+        run: |
+          nvim --headless -u NONE -c "luafile .github/workflows/tests/e2e/test_merge_request_e2e.lua"
