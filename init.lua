@@ -387,7 +387,7 @@ do
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
       { '<leader>r', group = '[R]un (npm / Maven)' },
       { '<leader>j', group = '[J]ava test (Maven)' },
-      { '<leader>g', group = '[G]it TUI (LazyGit)' },
+      { '<leader>g', group = '[G]it (LazyGit / MR)' },
       { '<leader>l', group = '[L]azy TUI (Docker / SQL)' },
       { '<leader>H', group = '[H]erdr' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
@@ -1163,6 +1163,7 @@ do
   --  Runners projets (npm + Maven / Micronaut) : `lua/custom/plugins/runners.lua`
   --  Maven tests (class / method / all) : `lua/custom/plugins/maven-tests.lua`
   --  LazyGit / LazyDocker / LazySQL (+ ensure_tool auto-install) : `lua/custom/plugins/lazy-tui.lua`
+  --  Revue MR GitLab/GitHub (checkout review/* + Diffview) : `lua/custom/plugins/merge-request.lua`
   --  Herdr tabs + fullscreen LazyGit/LazyDocker via CLI : `lua/custom/plugins/herdr.lua`
   require 'custom.plugins'
 end

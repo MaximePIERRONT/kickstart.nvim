@@ -46,6 +46,15 @@ local check_external_reqs = function()
     end
   end
 
+  -- Optional: enrich :MergeRequest titles (git ls-remote works without them).
+  for _, exe in ipairs { 'glab', 'gh' } do
+    if vim.fn.executable(exe) == 1 then
+      vim.health.ok(string.format("Found optional MR CLI: '%s' → %s", exe, vim.fn.exepath(exe)))
+    else
+      vim.health.info(string.format("Optional MR CLI not found: '%s' (GitLab/GitHub titles; git ls-remote still lists MRs)", exe))
+    end
+  end
+
   return true
 end
 

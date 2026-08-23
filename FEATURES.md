@@ -50,7 +50,7 @@ Légende du statut :
 | --- | --- | --- |
 | Navigation projet | [x] | Telescope + **neo-tree** (`\` / `<leader>e`, suivi du fichier courant) ; **`<leader>t`** toggle source ↔ test (Java + TS/JS, style IntelliJ Ctrl+Shift+T) |
 | Recherche fuzzy finder | [x] | Telescope (fichiers, grep, LSP) déjà là |
-| Git | [x] | `gitsigns` + keymaps hunks (`<leader>h…`, `]c`/`[c`) ; LazyGit en P2 |
+| Git | [x] | `gitsigns` + keymaps hunks (`<leader>h…`, `]c`/`[c`) ; LazyGit en P2 ; revue MR en P2 |
 | Lancer facilement un projet frontend avec npm | [x] | `<leader>rd/rb/rt/rs` + `:Npm` — terminal split, racine via `package.json` |
 | Lancer facilement un projet backend Java | [x] | `<leader>rc/rp/rj/rg` + `:Maven` — compile / package / spring-boot:run / goals libres |
 | Lancer facilement un projet backend Micronaut | [x] | `<leader>rm` picker configs / `rM` créer-éditer ; sauvé dans `.nvim/runners.json` (environments + config files + env) |
@@ -69,8 +69,9 @@ Légende du statut :
 | LazyGit dans l’interface Neovim | [x] | `<leader>gg` / `:LazyGit` — terminal flottant ; **auto-install** binaire via `custom.ensure_tool` (GitHub releases) |
 | LazyDocker dans l’interface Neovim | [x] | `<leader>ld` / `:LazyDocker` — idem auto-install |
 | LazySQL dans l’interface Neovim | [x] | `<leader>ls` / `:LazySQL` — explorateur SQL TUI ; idem auto-install |
+| Revue merge request (GitLab / GitHub) | [x] | Comme GitLab dans IntelliJ : `<leader>gm` / `:MergeRequest` liste les MR/PR, checkout une branche `review/mr-N` (GitLab) ou `review/pr-N` (GitHub) depuis `refs/merge-requests/*/head` / `refs/pull/*/head`, puis **Diffview** (panneau fichiers + diffs côte à côte, three-dot vs la cible). `<leader>gr` / `:MergeRequestReview` revoit la branche courante ; `<leader>gC` ferme la vue. `glab` / `gh` enrichissent les titres s’ils sont installés (sinon `git ls-remote`). |
 
-**Critère de done P2 :** debugger + tests Maven + LazyGit / LazyDocker / LazySQL ✅ (snippets optionnels).
+**Critère de done P2 :** debugger + tests Maven + LazyGit / LazyDocker / LazySQL + revue MR (Diffview) ✅ (snippets optionnels).
 
 ---
 
@@ -126,10 +127,10 @@ Suite CI : `.github/workflows/features-ci.yml`
 
 | Couche | Ce qui est vérifié |
 | --- | --- |
-| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs rg/fd/node/lazygit/lazysql, PATH, paquets OS) |
+| **Unit (Lua)** | Helpers `maven-tests` (FQCN, reactor `-pl/-am`) + `runners` (env/dotenv, Micronaut cmd, `runners.json`, scripts npm, `pom_has`) + `ensure_tool` (os/arch, asset URLs rg/fd/node/lazygit/lazysql, PATH, paquets OS) + `merge_request` (parse remotes/refs/JSON, branche `review/*`, three-dot range) |
 | **Unit/intégration (Java)** | `test-project` multi-module — domain / api / infrastructure (Micronaut) via `mvn verify` |
-| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, …), keymaps/commandes (LazyGit/LazyDocker/LazySQL/KickstartEnsureTools), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
-| **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java, **auto-install rg/fd/LazyGit/LazyDocker/LazySQL/Maven** |
+| **Integration (Neovim)** | Boot config, plugins (dap, neo-tree, telescope, conform, lint, blink, diffview, …), keymaps/commandes (LazyGit/LazyDocker/LazySQL/MergeRequest/KickstartEnsureTools), Mason P0/P2, jdtls attach, format java/ts, neo-tree + gitsigns |
+| **E2E (Neovim)** | npm build/test fixture, Maven compile + `runners.maven_run`, configs Micronaut persistées, tests Maven multi-module, session DAP Java, **auto-install rg/fd/LazyGit/LazyDocker/LazySQL/Maven**, checkout revue MR (git refs GitLab) |
 
 Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 
@@ -138,6 +139,7 @@ Scripts : `.github/workflows/tests/{unit,integration,e2e}/`.
 3. **Runners projets (P1)** — ~~npm + Maven (Java / Micronaut)~~ ✅
 4. **Debug & Tests (P2)** — ~~DAP + keymaps `mvn test` (setup auto via Mason)~~ ✅
 5. **LazyGit / LazyDocker / LazySQL (P2)** — ~~TUI flottant + auto-install binaires (+ JDK / Maven on-demand)~~ ✅
+5b. **Revue MR (P2)** — ~~checkout `review/mr-N` + Diffview (GitLab / GitHub, UX IntelliJ)~~ ✅
 6. **Install facile Ubuntu / Arch** — ~~paquets OS minimaux ; Node / JDK / rg / fd / Maven / Lazy* + Mason au démarrage~~ ✅
 7. **Sessions (P3)** — seulement si le reste est stable
 

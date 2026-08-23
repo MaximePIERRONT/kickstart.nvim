@@ -40,5 +40,14 @@ local wk_ok, wk = pcall(require, 'which-key')
 harness.assert_truthy(wk_ok, 'which-key')
 harness.ok 'which-key loaded'
 
+-- Diffview + merge-request review (P2, wired with git)
+harness.require_ok 'diffview'
+harness.assert_truthy(harness.command_exists 'DiffviewOpen', ':DiffviewOpen')
+harness.assert_truthy(harness.command_exists 'MergeRequest', ':MergeRequest')
+harness.assert_truthy(harness.command_exists 'MergeRequestReview', ':MergeRequestReview')
+harness.assert_truthy(harness.map_exists '<leader>gm', '<leader>gm')
+harness.assert_truthy(harness.map_exists '<leader>gr', '<leader>gr')
+harness.ok 'diffview + merge-request'
+
 harness.ok 'P1 navigation + git integration'
 vim.cmd 'qa!'

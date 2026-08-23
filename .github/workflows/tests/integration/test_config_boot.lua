@@ -16,6 +16,8 @@ harness.require_ok 'mason'
 harness.require_ok 'custom.plugins.runners'
 harness.require_ok 'custom.plugins.maven-tests'
 harness.require_ok 'custom.plugins.alternate-test'
+harness.require_ok 'custom.merge_request'
+harness.require_ok 'diffview'
 
 harness.ok 'config boot + core modules'
 vim.cmd 'qa!'
